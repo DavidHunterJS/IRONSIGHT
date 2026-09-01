@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
 import { translateFreeText } from '@/lib/hebrew';
-import { getConflictFromRequest } from '@/lib/conflicts';
+import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
+import { fetchUpstreamText, UpstreamError } from '@/lib/upstream';
+import { sanitizeText } from '@/lib/security/sanitize';
+import { cached, cacheKey } from '@/lib/cache';
+import { CACHE_TTL, UPSTREAM } from '@/lib/config';
+import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
 
 // Detect non-Latin scripts (Hebrew, Arabic, Farsi, Cyrillic, etc.)
 function hasNonLatinText(text: string): boolean {
@@ -27,49 +31,72 @@ interface TelegramPost {
 const latestKnownIds: Record<string, number> = {};
 // Cache of fetched posts so we don't re-fetch
 const postCache: Record<string, { text: string; date: string }> = {};
+const POST_CACHE_MAX = 4000;
 
-async function fetchPost(channel: string, postId: number): Promise<{ text: string; date: string } | null> {
-  const cacheKey = `${channel}/${postId}`;
-  if (postCache[cacheKey]) return postCache[cacheKey];
+/** Telegram channel names are user-supplied config; keep them to the documented charset. */
+const CHANNEL_RE = /^[A-Za-z0-9_]{3,64}$/;
+
+async function fetchPost(
+  channel: string,
+  postId: number,
+): Promise<{ text: string; date: string } | null> {
+  if (!CHANNEL_RE.test(channel) || !Number.isInteger(postId) || postId < 1) return null;
+
+  const cacheKeyStr = `${channel}/${postId}`;
+  if (postCache[cacheKeyStr]) return postCache[cacheKeyStr];
 
   try {
-    const res = await fetch(`https://t.me/${channel}/${postId}?embed=1&mode=tme`, {
-      signal: AbortSignal.timeout(3000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    });
+    // t.me embed pages are small; anything large is not a post we can parse.
+    const html = await fetchUpstreamText(
+      `https://t.me/${channel}/${postId}?embed=1&mode=tme`,
+      {
+        timeout: UPSTREAM.fastTimeoutMs,
+        maxBytes: 512_000,
+        headers: {
+          Accept: 'text/html',
+        },
+      },
+    );
 
-    if (!res.ok) return null;
-    const html = await res.text();
-
-    const textMatch = html.match(/<div class="tgme_widget_message_text js-message_text"[^>]*>(.*?)<\/div>/s);
+    const textMatch = html.match(
+      /<div class="tgme_widget_message_text js-message_text"[^>]*>(.*?)<\/div>/s,
+    );
     if (!textMatch) return null;
 
-    let text = textMatch[1]
-      .replace(/<br\s*\/?>/gi, ' ')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&#036;/g, '$')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // This is raw scraped HTML from a public channel — the single most
+    // untrusted input in the app. sanitizeText strips script/style bodies and
+    // all markup, decodes entities exactly once, and removes bidi-override
+    // characters (which can be used to make a post render deceptively).
+    let text = sanitizeText(textMatch[1], { maxLength: 1200 });
 
     const dateMatch = html.match(/<time[^>]*datetime="([^"]+)"/);
-    const date = dateMatch ? dateMatch[1] : new Date().toISOString();
+    const rawDate = dateMatch ? dateMatch[1] : '';
+    const parsed = rawDate ? new Date(rawDate) : null;
+    const date =
+      parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
 
     if (!text) return null;
 
     // Auto-translate non-Latin text (Hebrew, Farsi, Arabic, etc.)
     if (hasNonLatinText(text)) {
-      text = await translateFreeText(text);
+      // Translation output is third-party content too — sanitize the result.
+      text = sanitizeText(await translateFreeText(text), { maxLength: 1200 });
     }
 
     const result = { text, date };
-    postCache[cacheKey] = result;
+    // Bound the process-lifetime cache; without this a long-running container
+    // accumulates every post it has ever seen.
+    if (Object.keys(postCache).length > POST_CACHE_MAX) {
+      for (const key of Object.keys(postCache).slice(0, POST_CACHE_MAX / 2)) {
+        delete postCache[key];
+      }
+    }
+    postCache[cacheKeyStr] = result;
     return result;
-  } catch {
+  } catch (err) {
+    // A tripped circuit breaker must not look like "post does not exist",
+    // otherwise the discovery walk below would rewind the channel position.
+    if (err instanceof UpstreamError && err.kind === 'breaker') throw err;
     return null;
   }
 }
@@ -135,17 +162,18 @@ async function findLatestPostId(channel: string): Promise<number> {
   return low;
 }
 
-export async function GET(req: Request) {
-  const { server } = getConflictFromRequest(req);
+async function buildTelegram(conflictKey: string) {
+  const { server } = getConflict(conflictKey);
   const channels = server.telegramChannels;
 
-  // Process ALL channels in parallel — each finds latest + fetches 3 posts
+  // Process ALL channels in parallel — each finds latest + fetches 3 posts.
+  // Per-host concurrency limiting in the upstream client keeps this from
+  // opening dozens of simultaneous sockets to t.me.
   const channelResults = await Promise.allSettled(
     channels.map(async (channel) => {
       const latestId = await findLatestPostId(channel.name);
       const posts: TelegramPost[] = [];
 
-      // Fetch only latest 3 posts in parallel
       const ids = [latestId, latestId - 1, latestId - 2].filter(id => id > 0);
       const results = await Promise.allSettled(
         ids.map(id => fetchPost(channel.name, id))
@@ -165,25 +193,57 @@ export async function GET(req: Request) {
         }
       });
 
+      if (posts.length === 0) throw new Error(`${channel.name}: no posts retrieved`);
       return posts;
     })
   );
 
+  const health = statusFromSettled(channelResults);
+
   const allPosts: TelegramPost[] = [];
   for (const result of channelResults) {
-    if (result.status === 'fulfilled') {
-      allPosts.push(...result.value);
-    }
+    if (result.status === 'fulfilled') allPosts.push(...result.value);
   }
 
-  // Sort newest first
   allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  return NextResponse.json({
-    posts: allPosts,
-    channels: channels.map(c => c.label),
-    updated: new Date().toISOString(),
-  }, {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-  });
+  // Total failure — throw so the cache serves the last good snapshot instead of
+  // caching an empty result and showing an empty panel.
+  if (health.sourcesOk === 0 && health.sourcesTotal > 0) {
+    throw new Error(`all ${health.sourcesTotal} Telegram channels failed`);
+  }
+
+  return {
+    payload: {
+      posts: allPosts,
+      channels: channels.map(c => c.label),
+      updated: new Date().toISOString(),
+    },
+    health,
+  };
+}
+
+export async function GET(req: Request) {
+  const { key } = getConflictFromRequest(req);
+
+  try {
+    const result = await cached(
+      cacheKey('telegram', { conflict: key }),
+      CACHE_TTL.telegram,
+      () => buildTelegram(key),
+    );
+
+    return feedResponse(result.value.payload, {
+      status: result.stale ? 'stale' : result.value.health.status,
+      ageMs: result.ageMs,
+      sourcesOk: result.value.health.sourcesOk,
+      sourcesTotal: result.value.health.sourcesTotal,
+      error: result.error,
+    });
+  } catch (err) {
+    return feedUnavailable(
+      { posts: [] as TelegramPost[], channels: [] as string[], updated: new Date().toISOString() },
+      err,
+    );
+  }
 }
