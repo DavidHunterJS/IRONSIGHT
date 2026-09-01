@@ -281,3 +281,47 @@ describe('red-sea', () => {
     expect(cfg.server.shipRegions).toEqual(cfg.client.maritimeRegions);
   });
 });
+
+describe('global', () => {
+  const cfg = CONFLICTS['global'];
+
+  it('is registered', () => {
+    expect(ALL_CONFLICT_KEYS).toContain('global');
+  });
+
+  it('covers the whole world', () => {
+    for (const b of [cfg.server.firesBBox, cfg.server.flightsBBox]) {
+      expect(b.latMin).toBe(-90);
+      expect(b.latMax).toBe(90);
+      expect(b.lonMin).toBe(-180);
+      expect(b.lonMax).toBe(180);
+    }
+  });
+
+  it('is empty where a global value would be arbitrary, and says so', () => {
+    // These are deliberate, not oversights. A partial worldwide order of battle
+    // would imply the rest of the world's navies are quiet.
+    expect(cfg.server.ships).toEqual([]);
+    expect(cfg.client.navyColors).toEqual({});
+    expect(cfg.client.launchSites).toEqual([]);
+    expect(cfg.server.alertProvider).toBeUndefined();
+  });
+
+  it('still has the fields the populated panels need', () => {
+    expect(cfg.client.cities.length).toBeGreaterThan(20);
+    expect(cfg.server.newsFeeds.length).toBeGreaterThan(10);
+    expect(cfg.server.telegramChannels.length).toBeGreaterThan(0);
+    expect(cfg.client.regionBoxes.length).toBeGreaterThan(5);
+  });
+
+  it('filters on conflict vocabulary, not geography', () => {
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test('Russian missile strike on Kyiv kills three')).toBe(true);
+    expect(re.test('Ceasefire holds for a second day')).toBe(true);
+    expect(re.test('NATO scrambles jets after border incursion')).toBe(true);
+    expect(re.test('Warship shot down a drone')).toBe(true);
+    // Bare "strike" and "offensive" would wreck this at global scope.
+    expect(re.test('Union announces strike over pay dispute')).toBe(false);
+    expect(re.test('Critics called the remarks deeply offensive')).toBe(false);
+  });
+});
