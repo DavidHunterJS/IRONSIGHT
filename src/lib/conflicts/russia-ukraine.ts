@@ -261,9 +261,12 @@ export const russiaUkraine: ConflictConfig = {
       { url: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml', name: 'BBC' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml', name: 'NYT' },
       { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
-      { url: 'https://feeds.reuters.com/Reuters/worldNews', name: 'Reuters' },
+      // feeds.reuters.com is NXDOMAIN — Reuters retired its public RSS service.
+      // Google News site-scoped query is the remaining free route to their wire;
+      // left filtered so the theater keywords still scope it.
+      { url: 'https://news.google.com/rss/search?q=site:reuters.com+when:1d&hl=en-US&gl=US&ceid=US:en', name: 'Reuters' },
       // Ukrainian outlets — inherently on-topic, bypass the filter
-      { url: 'https://kyivindependent.com/feed/', name: 'Kyiv Independent', unfiltered: true },
+      { url: 'https://kyivindependent.com/news-archive/rss/', name: 'Kyiv Independent', unfiltered: true },
       { url: 'https://www.pravda.com.ua/eng/rss/', name: 'Ukrainska Pravda', unfiltered: true },
       { url: 'https://www.kyivpost.com/feed', name: 'Kyiv Post', unfiltered: true },
       { url: 'https://english.nv.ua/rss/all.xml', name: 'NV', unfiltered: true },

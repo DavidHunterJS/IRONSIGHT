@@ -249,7 +249,10 @@ export const iranIsrael: ConflictConfig = {
       { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', name: 'BBC', unfiltered: true },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', name: 'NYT', unfiltered: true },
       { url: 'https://www.aljazeera.com/xml/rss/all.xml', name: 'Al Jazeera' },
-      { url: 'https://feeds.reuters.com/Reuters/worldNews', name: 'Reuters' },
+      // feeds.reuters.com is NXDOMAIN — Reuters retired its public RSS service.
+      // Google News site-scoped query is the remaining free route to their wire;
+      // left filtered so the theater keywords still scope it.
+      { url: 'https://news.google.com/rss/search?q=site:reuters.com+when:1d&hl=en-US&gl=US&ceid=US:en', name: 'Reuters' },
       { url: 'https://www.timesofisrael.com/feed/', name: 'Times of Israel', unfiltered: true },
       { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'JPost', unfiltered: true },
       { url: 'https://www.ynetnews.com/Integration/StoryRss2.xml', name: 'Ynet', unfiltered: true },
@@ -271,9 +274,15 @@ export const iranIsrael: ConflictConfig = {
       { url: 'https://www.haaretz.com/srv/haaretz-latest-headlines', name: 'Haaretz', unfiltered: true },
       { url: 'https://www.haaretz.com/srv/middle-east-news-rss', name: 'Haaretz', unfiltered: true },
       { url: 'https://www.dropsitenews.com/feed', name: 'Drop Site' },
-      { url: 'https://www.presstv.ir/rss.xml', name: 'PressTV', unfiltered: true },
-      { url: 'https://www.presstv.ir/rss/rss-102.xml', name: 'PressTV', unfiltered: true },
-      { url: 'https://www.presstv.ir/rss/rss-101.xml', name: 'PressTV', unfiltered: true },
+      // Fetched over plain HTTP deliberately. PressTV serves a complete, in-date
+      // chain, but it anchors to "Actalis TLS Server RSA Root CA 2025", which is
+      // not in the Mozilla root program — so Node rejects it even against a
+      // current CA bundle, and https here fails outright. The content is fine
+      // (107 items). Browsers may show the site without warning because other
+      // root stores trust that CA; ours does not. Revisit if Mozilla adds it.
+      { url: 'http://www.presstv.ir/rss.xml', name: 'PressTV', unfiltered: true },
+      { url: 'http://www.presstv.ir/rss/rss-102.xml', name: 'PressTV', unfiltered: true },
+      { url: 'http://www.presstv.ir/rss/rss-101.xml', name: 'PressTV', unfiltered: true },
     ],
     newsRelevanceKeywords: /iran|israel|idf|irgc|hezbollah|hamas|houthi|lebanon|gaza|tehran|tel\s?aviv|jerusalem|yemen|iraq|syria|gulf|hormuz|red\s?sea|missile|strike|interception|nuclear|sanction|centcom|pentagon|middle\s?east|west\s?bank|golan|sinai|negev|dimona|natanz|isfahan|khamenei|netanyahu|nasrallah|raisi|ayatollah|mossad|shin\s?bet|quds|basij|proxy|ceasefire|escalat|retaliat|iron\s?dome|arrow|david.s\s?sling|patriot|drone|uav|saudi|emirates|uae|bahrain|qatar|kuwait|oman|gcc|opec/i,
 

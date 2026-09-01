@@ -42,6 +42,16 @@ async function fetchRSS(feedUrl: string, source: string): Promise<NewsItem[]> {
   const entries = doc.getElementsByTagName('entry');
   const elements = items.length > 0 ? items : entries;
 
+  // Some feeds (PressTV among them) publish items with no date element at all,
+  // only a channel-level lastBuildDate. Undated items resolve to epoch 1970 in
+  // the recency sort below and are then cut by the 100-item slice, so the source
+  // fetches successfully and still contributes nothing. Fall back to the feed's
+  // own statement of freshness before giving up on the date.
+  const channel = doc.getElementsByTagName('channel')[0];
+  const channelDate = channel
+    ? sanitizeText(getTextContent(channel, 'lastBuildDate'), { maxLength: 64 })
+    : '';
+
   const results: NewsItem[] = [];
 
   for (let i = 0; i < Math.min(elements.length, 15); i++) {
@@ -60,12 +70,13 @@ async function fetchRSS(feedUrl: string, source: string): Promise<NewsItem[]> {
     }
     const link = sanitizeUrl(rawLink) ?? '';
 
-    const pubDate = sanitizeText(
-      getTextContent(item, 'pubDate') ||
-        getTextContent(item, 'published') ||
-        getTextContent(item, 'updated'),
-      { maxLength: 64 },
-    );
+    const pubDate =
+      sanitizeText(
+        getTextContent(item, 'pubDate') ||
+          getTextContent(item, 'published') ||
+          getTextContent(item, 'updated'),
+        { maxLength: 64 },
+      ) || channelDate;
 
     if (!title) continue;
 
