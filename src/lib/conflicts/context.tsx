@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { CONFLICTS, DEFAULT_CONFLICT, isConflictKey } from './index';
-import type { ConflictConfig, ConflictKey } from './types';
+import { CONFLICTS, CONFLICT_KEYS, DEFAULT_CONFLICT, isConflictKey } from './index';
+import type { ConflictKey } from './index';
+import type { ConflictConfig } from './types';
 
 const STORAGE_KEY = 'ironsight-conflict';
 
@@ -38,9 +39,12 @@ export function ConflictProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
   }, []);
 
+  // Cycle through the enabled theaters. A hardcoded two-way flip would leave
+  // every theater past the second unreachable from the keyboard shortcut.
   const toggle = useCallback(() => {
     setKey(prev => {
-      const next: ConflictKey = prev === 'iran-israel' ? 'russia-ukraine' : 'iran-israel';
+      const i = CONFLICT_KEYS.indexOf(prev);
+      const next = CONFLICT_KEYS[(i + 1) % CONFLICT_KEYS.length];
       try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
       return next;
     });
