@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed, timeAgo, useTick } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 
 interface StrikeEvent {
   id: string;
@@ -31,7 +32,15 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 export default function StrikesPanel() {
-  const { data: strikes, loading } = useConflictFeed<StrikeEvent[]>('/api/strikes', 120000);
+  const {
+    data: rawStrikes,
+    status,
+    error,
+    lastUpdated,
+    sources,
+    refetch,
+  } = useConflictFeed<StrikeEvent[]>('/api/strikes', 120000);
+  const strikes = rawStrikes ?? [];
   useTick(15000);
 
   // Count by category
@@ -45,8 +54,9 @@ export default function StrikesPanel() {
       <div className="panel-header">
         <span className="status-dot" style={{ background: 'var(--red)', animation: 'pulse-dot 1s ease-in-out infinite' }} />
         MISSILE / STRIKE TRACKER
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          {strikes?.length || 0} events
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>{strikes.length} events</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
 
@@ -67,18 +77,16 @@ export default function StrikesPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-12 rounded" />
-            ))}
-          </div>
-        ) : strikes?.length === 0 ? (
-          <div className="p-4 text-center text-[var(--text-secondary)] text-xs">
-            No strike events detected
-          </div>
+        {shouldShowFallback(status, strikes.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={8}
+            emptyNote="No strike events matched in the current reporting window."
+          />
         ) : (
-          strikes?.map((strike, i) => {
+          strikes.map((strike, i) => {
             const config = CATEGORY_CONFIG[strike.category] || CATEGORY_CONFIG.REPORT;
             return (
               <a

@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import { useConflict } from '@/lib/conflicts/context';
 
 interface NavalVessel {
@@ -40,11 +41,13 @@ const TYPE_ICONS: Record<string, string> = {
 export default function NavalPanel() {
   const { config } = useConflict();
   const NAVY_COLORS = config.client.navyColors;
-  const { data, loading } = useConflictFeed<NavalData>('/api/ships', 300000);
+  const { data, status, error, lastUpdated, sources, refetch } =
+    useConflictFeed<NavalData>('/api/ships', 300000);
+  const ships = data?.ships ?? [];
 
   // Group by navy
   const byNavy: Record<string, NavalVessel[]> = {};
-  data?.ships.forEach(ship => {
+  ships.forEach(ship => {
     if (!byNavy[ship.navy]) byNavy[ship.navy] = [];
     byNavy[ship.navy].push(ship);
   });
@@ -62,8 +65,9 @@ export default function NavalPanel() {
       <div className="panel-header">
         <span className="status-dot" style={{ background: 'var(--blue)' }} />
         NAVAL TRACKER
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          {data?.totalTracked || 0} vessels // OSINT
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>{data?.totalTracked || 0} vessels // OSINT</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
 
@@ -80,12 +84,14 @@ export default function NavalPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-10 rounded" />
-            ))}
-          </div>
+        {shouldShowFallback(status, ships.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={5}
+            emptyNote="No vessels in the tracked order of battle for this theater."
+          />
         ) : (
           sortedNavies.map(navy => (
             <div key={navy}>

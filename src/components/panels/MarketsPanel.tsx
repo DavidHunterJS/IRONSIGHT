@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed, formatPrice, formatChange } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 
 interface MarketItem {
   symbol: string;
@@ -12,7 +13,15 @@ interface MarketItem {
 }
 
 export default function MarketsPanel() {
-  const { data: markets, loading } = useConflictFeed<MarketItem[]>('/api/markets', 600000);
+  const {
+    data: rawMarkets,
+    status,
+    error,
+    lastUpdated,
+    sources,
+    refetch,
+  } = useConflictFeed<MarketItem[]>('/api/markets', 600000);
+  const markets = rawMarkets ?? [];
 
   const indices = markets?.filter(m =>
     ['^DJI', '^GSPC', '^VIX', 'GC=F', 'DX-Y.NYB'].includes(m.symbol)
@@ -26,14 +35,13 @@ export default function MarketsPanel() {
       <div className="panel-header">
         <span className="status-dot" />
         DEFENSE & MARKETS
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-8 rounded" />
-            ))}
-          </div>
+        {shouldShowFallback(status, markets.length > 0) ? (
+          <FeedFallback status={status} error={error} onRetry={refetch} rows={8} />
         ) : (
           <>
             <div className="px-3 pt-2 pb-1">

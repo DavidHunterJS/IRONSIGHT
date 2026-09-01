@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useConflictFeed } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import { useConflict } from '@/lib/conflicts/context';
 import { playAlertSound } from '@/lib/generateAlert';
 import { BRAND } from '@/lib/brand';
@@ -51,7 +52,15 @@ const TYPE_ICONS: Record<string, string> = {
 export default function AlertsPanel() {
   const { config } = useConflict();
   const alertSystemName = config.client.alertSystemName;
-  const { data, loading } = useConflictFeed<AlertData>('/api/alerts', 15000);
+  const {
+    data,
+    loading,
+    status: feedStatus,
+    error: feedError,
+    lastUpdated,
+    sources,
+    refetch,
+  } = useConflictFeed<AlertData>('/api/alerts', 15000);
   const { data: droneData } = useConflictFeed<DroneData>('/api/drones', 20000);
   const drones = droneData?.drones || [];
   const prevStatus = useRef<string>('CLEAR');
@@ -166,6 +175,9 @@ export default function AlertsPanel() {
                   ? 'NO SOURCE'
                   : 'ALL CLEAR'}
           </span>
+          {/* Alert status describes the upstream provider; this describes our own
+              route. Both can fail independently, so both are reported. */}
+          <FeedBadge status={feedStatus} lastUpdated={lastUpdated} sources={sources} />
         </div>
       </div>
 
@@ -195,6 +207,11 @@ export default function AlertsPanel() {
           <div className="p-3">
             <div className="loading-shimmer h-20 rounded" />
           </div>
+        ) : shouldShowFallback(feedStatus, !!data) ? (
+          // Our own route is unreachable, so we have no alert status at all.
+          // Falling through to the green shield here would be the same false
+          // all-clear as an upstream outage, just one layer further out.
+          <FeedFallback status={feedStatus} error={feedError} onRetry={refetch} rows={4} />
         ) : isActive ? (
           <>
             {/* Active alert banner */}
