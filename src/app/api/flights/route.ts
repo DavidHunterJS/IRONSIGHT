@@ -33,14 +33,22 @@ export async function GET(req: Request) {
       a.lat && a.lon && a.lat >= bbox.latMin && a.lat <= bbox.latMax && a.lon >= bbox.lonMin && a.lon <= bbox.lonMax
     );
 
+    // The regional feed is bounded by a radius, not by the theater's bounding
+    // box, so a query wide enough to reach usable receiver coverage can pull in
+    // aircraft well outside the theater. Clip it to the same box the global mil
+    // feed is clipped to, before any of the flag/callsign heuristics run.
+    const regionInBox = (regionData.ac || []).filter((a: AircraftState) =>
+      a.lat && a.lon && a.lat >= bbox.latMin && a.lat <= bbox.latMax && a.lon >= bbox.lonMin && a.lon <= bbox.lonMax
+    );
+
     // From regional feed, get military flagged + interesting aircraft
-    const regionMil = (regionData.ac || []).filter((a: AircraftState) => {
+    const regionMil = regionInBox.filter((a: AircraftState) => {
       const flags = a.dbFlags || 0;
       return (flags & 1) || (flags & 2); // military or interesting
     });
 
     // Also check regional feed for military callsigns, types, or US mil hex with no callsign
-    const regionCallsignMil = (regionData.ac || []).filter((a: AircraftState) => {
+    const regionCallsignMil = regionInBox.filter((a: AircraftState) => {
       const flags = a.dbFlags || 0;
       if ((flags & 1) || (flags & 2)) return false; // already captured above
       const cs = (a.flight || '').trim().toUpperCase();
@@ -74,7 +82,9 @@ export async function GET(req: Request) {
       }
     }
 
-    const totalRegion = (regionData.ac || []).length;
+    // Count what is actually in the theater, not everything the radius query
+    // returned — otherwise the header's "N total" disagrees with the map.
+    const totalRegion = regionInBox.length;
 
     const flights = allMil.map((a: AircraftState) => {
       const callsign = (a.flight || '').trim();
