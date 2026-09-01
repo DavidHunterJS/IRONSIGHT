@@ -280,9 +280,12 @@ export const iranIsrael: ConflictConfig = {
       // current CA bundle, and https here fails outright. The content is fine
       // (107 items). Browsers may show the site without warning because other
       // root stores trust that CA; ours does not. Revisit if Mozilla adds it.
+      // One feed, not three. rss.xml is the superset (107 items, 88 unique
+      // titles); rss-101 and rss-102 carry 10 unique titles each, 6 of which
+      // rss.xml already has. Because PressTV items have no date and inherit the
+      // channel timestamp, all three tied at the top of the recency sort and
+      // took 25 of 100 slots. One feed caps it at the route's 15-item limit.
       { url: 'http://www.presstv.ir/rss.xml', name: 'PressTV', unfiltered: true },
-      { url: 'http://www.presstv.ir/rss/rss-102.xml', name: 'PressTV', unfiltered: true },
-      { url: 'http://www.presstv.ir/rss/rss-101.xml', name: 'PressTV', unfiltered: true },
     ],
     newsRelevanceKeywords: /iran|israel|idf|irgc|hezbollah|hamas|houthi|lebanon|gaza|tehran|tel\s?aviv|jerusalem|yemen|iraq|syria|gulf|hormuz|red\s?sea|missile|strike|interception|nuclear|sanction|centcom|pentagon|middle\s?east|west\s?bank|golan|sinai|negev|dimona|natanz|isfahan|khamenei|netanyahu|nasrallah|raisi|ayatollah|mossad|shin\s?bet|quds|basij|proxy|ceasefire|escalat|retaliat|iron\s?dome|arrow|david.s\s?sling|patriot|drone|uav|saudi|emirates|uae|bahrain|qatar|kuwait|oman|gcc|opec/i,
 

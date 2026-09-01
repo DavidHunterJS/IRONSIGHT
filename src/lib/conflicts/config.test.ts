@@ -25,8 +25,6 @@ const HTTP_ONLY_FEEDS = new Set<string>([
   // Mozilla program, so Node cannot verify it. Plain HTTP is the working route
   // until that root is added.
   'http://www.presstv.ir/rss.xml',
-  'http://www.presstv.ir/rss/rss-102.xml',
-  'http://www.presstv.ir/rss/rss-101.xml',
 ]);
 
 function isLat(n: number) { return Number.isFinite(n) && n >= -90 && n <= 90; }
