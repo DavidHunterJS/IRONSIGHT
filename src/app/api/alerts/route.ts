@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { translateHebrew, translateCities, isHebrew, translateFreeText, CITY_TRANSLATIONS } from '@/lib/hebrew';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { deriveAlertStatus } from '@/lib/alertStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,11 +23,16 @@ export async function GET(req: Request) {
 
   // Three-way, not a ternary with a fallback: a theater with no air-raid mirror
   // must return nothing, not quietly serve another theater's provider.
+  const hasProvider = server.alertProvider !== undefined;
   let alerts: AlertEvent[] = [];
+  // Tracks whether the upstream actually answered. An empty list on its own
+  // cannot distinguish "quiet" from "unreachable", and reporting the latter as
+  // ALL CLEAR is a false negative on the feed readers act on.
+  let fetchOk = false;
   if (server.alertProvider === 'alertsua') {
-    alerts = await fetchUkraineAlerts(sourceLabel);
+    ({ alerts, ok: fetchOk } = await fetchUkraineAlerts(sourceLabel));
   } else if (server.alertProvider === 'tzevaadom') {
-    alerts = await fetchTzevaAdomAlerts(sourceLabel);
+    ({ alerts, ok: fetchOk } = await fetchTzevaAdomAlerts(sourceLabel));
   }
 
   // Add new alerts to sticky cache
@@ -48,7 +54,7 @@ export async function GET(req: Request) {
     active: alerts.some(a => a.threatOriginal === s.threatOriginal && a.locationsOriginal.join() === s.locationsOriginal.join()),
   }));
 
-  const status = allAlerts.length > 0 ? 'ACTIVE' : 'CLEAR';
+  const status = deriveAlertStatus({ hasProvider, fetchOk, activeCount: allAlerts.length });
 
   return NextResponse.json({
     status,
@@ -65,8 +71,11 @@ export async function GET(req: Request) {
 }
 
 // --- Provider: Israeli Home Front Command via Tzeva Adom (Hebrew) ---
-async function fetchTzevaAdomAlerts(sourceLabel: string): Promise<AlertEvent[]> {
+async function fetchTzevaAdomAlerts(
+  sourceLabel: string,
+): Promise<{ alerts: AlertEvent[]; ok: boolean }> {
   const alerts: AlertEvent[] = [];
+  let ok = false;
   try {
     const res = await fetchWithTimeout('https://api.tzevaadom.co.il/notifications', {
       timeout: 12000,
@@ -105,6 +114,8 @@ async function fetchTzevaAdomAlerts(sourceLabel: string): Promise<AlertEvent[]> 
           });
         });
       }
+      // 2xx received and parsed: the provider genuinely answered.
+      ok = true;
     }
   } catch (err) {
     const isTimeout = err instanceof Error && (err.message.includes('Timeout') || (err as NodeJS.ErrnoException).code === 'UND_ERR_CONNECT_TIMEOUT');
@@ -121,12 +132,15 @@ async function fetchTzevaAdomAlerts(sourceLabel: string): Promise<AlertEvent[]> 
     );
   }));
 
-  return alerts;
+  return { alerts, ok };
 }
 
 // --- Provider: Ukrainian oblast air-raid alerts via alerts.com.ua (free, English names) ---
-async function fetchUkraineAlerts(sourceLabel: string): Promise<AlertEvent[]> {
+async function fetchUkraineAlerts(
+  sourceLabel: string,
+): Promise<{ alerts: AlertEvent[]; ok: boolean }> {
   const alerts: AlertEvent[] = [];
+  let ok = false;
   try {
     const res = await fetchWithTimeout('https://alerts.com.ua/api/states', {
       timeout: 12000,
@@ -149,12 +163,14 @@ async function fetchUkraineAlerts(sourceLabel: string): Promise<AlertEvent[]> {
           active: true,
         });
       });
+      // 2xx received and parsed: the provider genuinely answered.
+      ok = true;
     }
   } catch (err) {
     const isTimeout = err instanceof Error && (err.message.includes('Timeout') || (err as NodeJS.ErrnoException).code === 'UND_ERR_CONNECT_TIMEOUT');
     if (!isTimeout) console.error('alerts.com.ua fetch error:', err);
   }
-  return alerts;
+  return { alerts, ok };
 }
 
 interface AlertsUaState {
