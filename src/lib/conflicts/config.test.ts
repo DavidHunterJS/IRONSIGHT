@@ -170,3 +170,76 @@ describe('taiwan-china', () => {
     expect(re.test('Israeli strikes reported near Tehran')).toBe(false);
   });
 });
+
+describe('north-korea', () => {
+  const cfg = CONFLICTS['north-korea'];
+
+  it('is registered', () => {
+    expect(ALL_CONFLICT_KEYS).toContain('north-korea');
+  });
+
+  it('declares no air-raid provider', () => {
+    // Second provider-less theater. South Korea's civil defence warnings are
+    // not mirrored through a free public API.
+    expect(cfg.server.alertProvider).toBeUndefined();
+    expect(cfg.client.hasDroneTracker).toBe(false);
+  });
+
+  it('scopes its news relevance filter to the theater', () => {
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test('North Korea fired an ICBM into the East Sea')).toBe(true);
+    expect(re.test('Artillery exchanged near the Northern Limit Line')).toBe(true);
+    expect(re.test('Inspection at the Yongbyon nuclear complex')).toBe(true);
+    // Must not pull in the other theaters' stories.
+    expect(re.test('Russian drone strike on Kyiv overnight')).toBe(false);
+    expect(re.test('PLA aircraft crossed the Taiwan Strait median line')).toBe(false);
+    expect(re.test('Israeli strikes reported near Tehran')).toBe(false);
+  });
+
+  it('does not pick a side on the naming of the eastern sea', () => {
+    // "East Sea" is Korean usage, "Sea of Japan" international. The config
+    // writes both rather than choosing, and the filter matches either.
+    expect(cfg.server.shipRegions).toContain('East Sea / Sea of Japan');
+    expect(cfg.server.newsRelevanceKeywords.test('a launch into the Sea of Japan')).toBe(true);
+    expect(cfg.server.newsRelevanceKeywords.test('a launch into the East Sea')).toBe(true);
+  });
+});
+
+describe('news relevance filters reject ordinary English', () => {
+  // Every term in these regexes is a substring match unless anchored, and short
+  // place names collide with common words. Three shipped that way:
+  //   "plan\\b"  matched the English word "plan"
+  //   "bashi"   matched "Bashir"
+  //   "matsu"   matched "Matsushita"
+  //   "osan"    matched "Doosan"
+  //   "seoul"   matched any Seoul-datelined domestic story
+  const NOISE = [
+    'Company announces restructuring plan for next quarter',
+    'The government unveiled an economic plan',
+    'Omar al-Bashir appears in court',
+    'Matsushita reports quarterly earnings',
+    'Doosan widens helicopter search for missing workers in Nepal',
+    "2PM's Chansung walks Re Rhee show opening Seoul Fashion Week",
+    'Three regional universities to receive funding to close gap with Seoul',
+    'Chipotle brings burritos to Korea, and a familiar American anxiety',
+  ];
+
+  it.each(keys)('%s does not match unrelated headlines', (key) => {
+    const re = CONFLICTS[key].server.newsRelevanceKeywords;
+    for (const t of NOISE) {
+      expect(re.test(t), `"${t}" matched ${re.source.slice(0, 40)}...`).toBe(false);
+    }
+  });
+
+  it('still matches genuinely on-topic headlines', () => {
+    const nk = CONFLICTS['north-korea'].server.newsRelevanceKeywords;
+    expect(nk.test('North Korea fired an ICBM into the East Sea')).toBe(true);
+    expect(nk.test('South Korea scrambles jets after airspace incursion')).toBe(true);
+    expect(nk.test('Aircraft diverted to Osan Air Base')).toBe(true);
+
+    const tw = CONFLICTS['taiwan-china'].server.newsRelevanceKeywords;
+    expect(tw.test('PLA Navy vessels transited the Bashi Channel')).toBe(true);
+    expect(tw.test('Shelling reported near Matsu islands')).toBe(true);
+    expect(tw.test('PLA aircraft crossed the median line')).toBe(true);
+  });
+});
