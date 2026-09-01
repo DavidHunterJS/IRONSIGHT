@@ -1,6 +1,7 @@
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { UPSTREAM } from '@/lib/config';
 import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,10 @@ export async function GET(req: Request) {
     // Download global 24h fire data and filter to Middle East region
     const url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv';
 
-    const res = await fetchWithTimeout(url, { timeout: 30000 });
+    // Opts in to the bulk allowance: this endpoint only serves the global
+    // 24h file (~17 MB), which is far above the default 4 MB cap. Explicit
+    // rather than unbounded — it is still a limit, just a larger one.
+    const res = await fetchWithTimeout(url, { timeout: 30000, maxBytes: UPSTREAM.maxBytesBulk });
     if (!res.ok) throw new Error('FIRMS data download failed');
 
     const text = await res.text();

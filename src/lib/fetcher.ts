@@ -11,15 +11,16 @@ import { guardedFetch } from '@/lib/upstream';
  *   - the per-host concurrency cap
  *   - an identifying User-Agent
  *
- * Prefer `fetchUpstreamText` / `fetchUpstreamJson` in new code: those also
- * enforce the response size cap, which needs to wrap body reading.
+ * The response size cap now applies here too: guardedFetch returns a body
+ * stream that errors past the limit, so it holds however the caller reads.
+ * Pass `maxBytes` to raise it for a specific upstream.
  */
 export async function fetchWithTimeout(
   url: string,
-  options: RequestInit & { timeout?: number } = {}
+  options: RequestInit & { timeout?: number; maxBytes?: number } = {}
 ): Promise<Response> {
-  const { timeout = UPSTREAM.timeoutMs, ...fetchOptions } = options;
-  return guardedFetch(url, { ...fetchOptions, timeout });
+  const { timeout = UPSTREAM.timeoutMs, maxBytes, ...fetchOptions } = options;
+  return guardedFetch(url, { ...fetchOptions, timeout, maxBytes });
 }
 
 export function parseXML(text: string): Document {

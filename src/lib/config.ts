@@ -44,6 +44,13 @@ export const UPSTREAM = {
   fastTimeoutMs: int(process.env.UPSTREAM_FAST_TIMEOUT_MS, 3_500),
   /** Max bytes we will read from any upstream response body. */
   maxBytes: int(process.env.UPSTREAM_MAX_BYTES, 4_000_000),
+  /**
+   * Allowance for the handful of upstreams that legitimately serve a bulk file.
+   * NASA FIRMS publishes only a global 24h CSV on its key-free endpoint — about
+   * 17 MB and growing — so the default cap cannot apply to it. Routes must opt
+   * in per call; this is not a general raise.
+   */
+  maxBytesBulk: int(process.env.UPSTREAM_MAX_BYTES_BULK, 32_000_000),
   /** Max simultaneous in-flight requests to a single upstream host. */
   maxConcurrentPerHost: int(process.env.UPSTREAM_MAX_CONCURRENT_PER_HOST, 4),
   /** Consecutive failures before a host is short-circuited. */

@@ -1,7 +1,7 @@
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
-import { feedResponse, feedUnavailable } from '@/lib/api/respond';
+import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +24,18 @@ export async function GET(req: Request) {
         headers: { 'Accept': 'application/json' },
       }).then(r => r.ok ? r.json() : { ac: [] }),
     ]);
+
+    // Both sources rejecting must not read as "no aircraft airborne". The
+    // per-source fallbacks below substitute an empty list, which is right when
+    // one source is down and wrong when both are — that case is an outage, and
+    // the route said "ok" for it until now.
+    const { status, sourcesOk, sourcesTotal } = statusFromSettled([milResult, regionResult]);
+    if (status === 'error') {
+      return feedUnavailable(
+        { total: 0, military: 0, flights: [], source: 'adsb.lol', updated: new Date().toISOString() },
+        new Error('all ADS-B sources failed'),
+      );
+    }
 
     const milData = milResult.status === 'fulfilled' ? milResult.value : { ac: [] };
     const regionData = regionResult.status === 'fulfilled' ? regionResult.value : { ac: [] };
@@ -122,7 +134,7 @@ export async function GET(req: Request) {
         source: 'adsb.lol',
         updated: new Date().toISOString(),
       },
-      { sourcesOk: 1, sourcesTotal: 1 },
+      { status, sourcesOk, sourcesTotal },
       { headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=10' } },
     );
   } catch (err) {

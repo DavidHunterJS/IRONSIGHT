@@ -113,7 +113,16 @@ export interface UpstreamOptions extends Omit<RequestInit, 'signal'> {
  * Read a response body with a hard byte ceiling.
  * Aborts as soon as the cap is exceeded rather than buffering the whole body.
  */
-async function readCapped(res: Response, maxBytes: number, host: string): Promise<string> {
+/**
+ * Wrap a response so its body cannot exceed `maxBytes`.
+ *
+ * This has to happen here rather than in the read helpers. `guardedFetch`
+ * hands back a Response and most routes read the body themselves, so a cap
+ * applied only inside fetchUpstreamText/Json covers two of the twelve fetching
+ * routes and silently misses the rest — including the largest download in the
+ * app. Capping the stream means the limit holds no matter how the caller reads.
+ */
+export function capResponseBody(res: Response, maxBytes: number, host: string): Response {
   const declared = Number.parseInt(res.headers.get('content-length') ?? '', 10);
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new UpstreamError(
@@ -123,38 +132,34 @@ async function readCapped(res: Response, maxBytes: number, host: string): Promis
     );
   }
 
-  if (!res.body) return res.text();
+  // 204/304 carry no body, and constructing a Response with one throws.
+  if (!res.body || res.status === 204 || res.status === 304) return res;
 
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
   let total = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!value) continue;
-      total += value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel();
-        throw new UpstreamError(
-          `Response exceeded ${maxBytes} byte cap from ${host}`,
-          'too-large',
-          host,
-        );
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock?.();
-  }
+  const capped = res.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        total += chunk.byteLength;
+        if (total > maxBytes) {
+          controller.error(
+            new UpstreamError(
+              `Response exceeded ${maxBytes} byte cap from ${host}`,
+              'too-large',
+              host,
+            ),
+          );
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
 
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder('utf-8').decode(merged);
+  return new Response(capped, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: res.headers,
+  });
 }
 
 /**
@@ -173,10 +178,9 @@ export async function guardedFetch(
     timeout = UPSTREAM.timeoutMs,
     ignoreBreaker = false,
     headers,
-    maxBytes: _maxBytes,
+    maxBytes = UPSTREAM.maxBytes,
     ...rest
   } = options;
-  void _maxBytes;
 
   let host: string;
   try {
@@ -215,11 +219,11 @@ export async function guardedFetch(
       // don't trip the breaker on those.
       if (res.status >= 500 || res.status === 429) recordFailure(host);
       else recordSuccess(host);
-      return res;
+      return capResponseBody(res, maxBytes, host);
     }
 
     recordSuccess(host);
-    return res;
+    return capResponseBody(res, maxBytes, host);
   } catch (err) {
     recordFailure(host);
     if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
@@ -257,7 +261,8 @@ export async function fetchUpstreamText(
     throw new UpstreamError(`HTTP ${res.status} from ${host}`, 'http', host, res.status);
   }
 
-  return readCapped(res, options.maxBytes ?? UPSTREAM.maxBytes, host);
+  // Body is already capped by guardedFetch.
+  return res.text();
 }
 
 /** Same protections, JSON-decoded. */
