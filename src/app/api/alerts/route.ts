@@ -20,10 +20,14 @@ export async function GET(req: Request) {
   const sourceLabel = client.alertSystemName;
   let stickyAlerts = stickyByConflict[key] || [];
 
-  const alerts: AlertEvent[] =
-    server.alertProvider === 'alertsua'
-      ? await fetchUkraineAlerts(sourceLabel)
-      : await fetchTzevaAdomAlerts(sourceLabel);
+  // Three-way, not a ternary with a fallback: a theater with no air-raid mirror
+  // must return nothing, not quietly serve another theater's provider.
+  let alerts: AlertEvent[] = [];
+  if (server.alertProvider === 'alertsua') {
+    alerts = await fetchUkraineAlerts(sourceLabel);
+  } else if (server.alertProvider === 'tzevaadom') {
+    alerts = await fetchTzevaAdomAlerts(sourceLabel);
+  }
 
   // Add new alerts to sticky cache
   const now = Date.now();
@@ -52,6 +56,9 @@ export async function GET(req: Request) {
     alerts: allAlerts,
     lastChecked: new Date().toISOString(),
     source: sourceLabel,
+    // null = no air-raid mirror for this theater, so CLEAR means "no source",
+    // not "checked and quiet". The panel does not distinguish these yet.
+    provider: server.alertProvider ?? null,
   }, {
     headers: { 'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=3' }, // Check every 5 seconds
   });

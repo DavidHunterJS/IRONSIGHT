@@ -4,11 +4,12 @@
 // Iran/Israel theater, so the same UI + API routes can be repointed at a
 // different conflict (Russia/Ukraine) by swapping the config object.
 //
+// ConflictKey itself lives in ./index, derived from the registry, so that
+// adding a theater is a one-line change there.
+//
 // This module is plain TS (no React, no browser APIs) so it can be imported by
 // BOTH client components (via the conflict context) and server API routes
 // (via the ?conflict= query param). Keep it free of client-only imports.
-
-export type ConflictKey = 'iran-israel' | 'russia-ukraine';
 
 export interface MapCity {
   name: string;
@@ -174,15 +175,19 @@ export interface ServerConfig {
   ships: StaticShip[];
   shipRegions: string[];
 
-  // alerts route: which provider drives the air-raid feed
-  alertProvider: 'tzevaadom' | 'alertsua';
+  // alerts route: which provider drives the air-raid feed.
+  // Undefined = this theater has no air-raid mirror; the route must return an
+  // empty result rather than falling through to another theater's provider.
+  alertProvider?: 'tzevaadom' | 'alertsua';
 
   // drones route: real-time drone/missile track provider (undefined = none)
   droneProvider?: 'neptun';
 }
 
 export interface ConflictConfig {
-  key: ConflictKey;
+  // Must equal the key this config is registered under in ./index.
+  // Kept as a plain string to avoid a type cycle with the derived ConflictKey.
+  key: string;
   // Short label for the toggle, e.g. "IRAN / ISRAEL"
   label: string;
   // Longer theater description shown in the header subtitle
