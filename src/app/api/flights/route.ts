@@ -258,11 +258,26 @@ function getOriginFromHex(hex: string): string {
   if (n >= 0x738000 && n <= 0x73FFFF) return 'Israel';
   if (n >= 0x730000 && n <= 0x737FFF) return 'Iran';
   if (n >= 0x740000 && n <= 0x741FFF) return 'Turkey';
-  if (n >= 0x710000 && n <= 0x71FFFF) return 'Saudi Arabia';
+  if (n >= 0x710000 && n <= 0x717FFF) return 'Saudi Arabia';
   if (n >= 0x896000 && n <= 0x896FFF) return 'UAE';
   if (n >= 0x140000 && n <= 0x1FFFFF) return 'Russia';
   if (n >= 0x508000 && n <= 0x50FFFF) return 'Ukraine';
   if (n >= 0x510000 && n <= 0x5103FF) return 'Belarus';
   if (n >= 0x400000 && n <= 0x43FFFF) return 'NATO/Europe';
+  // Asia-Pacific. Absent until the Taiwan/China theater was added, which left
+  // every aircraft in that region attributed to 'Unknown' and uncoloured.
+  if (n >= 0x780000 && n <= 0x7BFFFF) return 'China';
+  if (n >= 0x899000 && n <= 0x8993FF) return 'Taiwan';
+  if (n >= 0x840000 && n <= 0x87FFFF) return 'Japan';
+  if (n >= 0x718000 && n <= 0x71FFFF) return 'South Korea';
+  if (n >= 0x720000 && n <= 0x727FFF) return 'North Korea';
+  if (n >= 0x758000 && n <= 0x75FFFF) return 'Philippines';
+  if (n >= 0x750000 && n <= 0x757FFF) return 'Malaysia';
+  if (n >= 0x768000 && n <= 0x76FFFF) return 'Singapore';
+  if (n >= 0x880000 && n <= 0x887FFF) return 'Thailand';
+  if (n >= 0x888000 && n <= 0x88FFFF) return 'Vietnam';
+  if (n >= 0x8A0000 && n <= 0x8AFFFF) return 'Indonesia';
+  if (n >= 0x800000 && n <= 0x83FFFF) return 'India';
+  if (n >= 0x7C0000 && n <= 0x7FFFFF) return 'Australia';
   return '';
 }

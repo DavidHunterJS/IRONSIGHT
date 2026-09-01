@@ -59,6 +59,12 @@ export const iranIsrael: ConflictConfig = {
       'jerusalem': [31.77, 35.21], 'beer sheva': [31.25, 34.79], 'eilat': [29.56, 34.95],
       'negev': [30.85, 34.78], 'arad': [31.26, 35.21], 'ashdod': [31.80, 34.66],
       'ashkelon': [31.67, 34.57], 'ben gurion': [32.01, 34.87], 'nuclear': [31.07, 35.03],
+      // Advertised in strikeTargets; the coordinate previously existed only in
+      // alertCities, so the strike geocoder could never place it.
+      'sderot': [31.525, 34.596],
+      // strikeTargets advertises 'nuclear town' (displayed as Dimona) but only
+      // 'dimona' and the vaguer 'nuclear' catch-all had coordinates.
+      'nuclear town': [31.07, 35.03],
       'israel': [31.5, 34.8],
       // Lebanon
       'beirut': [33.89, 35.50], 'hezbollah': [33.60, 35.50], 'litani': [33.35, 35.30],
@@ -321,7 +327,7 @@ export const iranIsrael: ConflictConfig = {
       { name: 'IRGCN Fast Boats', hull: 'Various', type: 'Fast Attack Craft', class: 'Various', navy: 'IRGC Navy', lat: 26.8, lon: 56.1, status: 'Active', region: 'Strait of Hormuz', group: 'IRGCN Patrol' },
       { name: 'HMS Al Riyadh', hull: 'F-3000S', type: 'Frigate', class: 'Al Riyadh-class', navy: 'Saudi Navy', lat: 20.5, lon: 39.8, status: 'Patrol', region: 'Red Sea' },
     ],
-    shipRegions: ['Persian Gulf', 'Red Sea', 'Eastern Med', 'Arabian Sea'],
+    shipRegions: ['Persian Gulf', 'Red Sea', 'Eastern Med', 'Arabian Sea', 'Strait of Hormuz'],
 
     alertProvider: 'tzevaadom',
     // No free real-time drone-track source for this theater
