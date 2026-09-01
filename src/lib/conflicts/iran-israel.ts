@@ -296,7 +296,10 @@ export const iranIsrael: ConflictConfig = {
       { name: 'OSINTdefender', label: 'OSINT Defender', color: '#00aaff' },
       { name: 'middle_east_spectator', label: 'ME Spectator', color: '#ff6600' },
       { name: 'iranintl_en', label: 'Iran Intl', color: '#00ff88' },
-      { name: 'Alertisrael', label: 'Alert Israel', color: '#ff6688' },
+      // Removed: Alertisrael is a private channel with no public preview —
+      // t.me serves the "view and join" page instead of posts, so it can never
+      // be scraped. It was the one source keeping this theater permanently at
+      // 30/31 degraded, which trains a reader to ignore the badge.
       { name: 'QudsNen', label: 'Quds News', color: '#33cc66' },
       { name: 'TimesofIsrael', label: 'Times of Israel', color: '#0066cc' },
       { name: 'FarsNews_EN', label: 'Fars News', color: '#669933' },
