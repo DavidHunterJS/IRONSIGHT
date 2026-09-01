@@ -1,10 +1,39 @@
 services:
   ironsight:
-    build: .
+    build:
+      context: .
+      args:
+        # Build-time (inlined into the client bundle). Change these to rebrand.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-IRONSIGHT}
+        NEXT_PUBLIC_APP_SHORT: ${NEXT_PUBLIC_APP_SHORT:-IRONSIGHT}
+        NEXT_PUBLIC_APP_TAGLINE: ${NEXT_PUBLIC_APP_TAGLINE:-OSINT COMMAND CENTER // UNCLASSIFIED}
+        NEXT_PUBLIC_OPERATOR_NAME: ${NEXT_PUBLIC_OPERATOR_NAME:-}
+        NEXT_PUBLIC_OPERATOR_URL: ${NEXT_PUBLIC_OPERATOR_URL:-}
+        NEXT_PUBLIC_CONTACT: ${NEXT_PUBLIC_CONTACT:-}
     image: ironsight:latest
     container_name: ironsight
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+      # Runtime tuning — see .env.example for the full list.
+      CSP_MODE: ${CSP_MODE:-enforce}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-240}
+      RATE_LIMIT_EXPENSIVE_MAX: ${RATE_LIMIT_EXPENSIVE_MAX:-60}
+      UPSTREAM_TIMEOUT_MS: ${UPSTREAM_TIMEOUT_MS:-8000}
+      CACHE_TTL_NEWS_MS: ${CACHE_TTL_NEWS_MS:-90000}
+      CACHE_TTL_TELEGRAM_MS: ${CACHE_TTL_TELEGRAM_MS:-45000}
     restart: unless-stopped
+    # Bind to localhost above and terminate TLS in front (Caddy/nginx/Cloudflare).
+    # HSTS is only emitted in production — do not enable it until HTTPS works.
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
