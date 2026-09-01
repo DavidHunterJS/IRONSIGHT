@@ -1,5 +1,5 @@
 services:
-  ironsight:
+  watchfloor:
     build:
       context: .
       args:
@@ -11,8 +11,8 @@ services:
         NEXT_PUBLIC_OPERATOR_NAME: ${NEXT_PUBLIC_OPERATOR_NAME:-}
         NEXT_PUBLIC_OPERATOR_URL: ${NEXT_PUBLIC_OPERATOR_URL:-}
         NEXT_PUBLIC_CONTACT: ${NEXT_PUBLIC_CONTACT:-}
-    image: ironsight:latest
-    container_name: ironsight
+    image: watchfloor:latest
+    container_name: watchfloor
     ports:
       - "127.0.0.1:3000:3000"
     environment:

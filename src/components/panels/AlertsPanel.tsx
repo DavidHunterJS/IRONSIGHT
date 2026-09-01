@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useConflictFeed } from '@/lib/hooks';
 import { useConflict } from '@/lib/conflicts/context';
 import { playAlertSound } from '@/lib/generateAlert';
+import { BRAND } from '@/lib/brand';
 
 interface AlertData {
   status: 'ACTIVE' | 'CLEAR';
@@ -80,7 +81,7 @@ export default function AlertsPanel() {
 
       // Also send browser notification if permitted
       if (Notification.permission === 'granted') {
-        new Notification('IRONSIGHT ALERT', {
+        new Notification(`${BRAND.short} ALERT`, {
           body: `${data.activeCount} active alert(s) - ${data.alerts[0]?.type}: ${data.alerts[0]?.threat}`,
           icon: '/favicon.ico',
           tag: 'ironsight-alert',

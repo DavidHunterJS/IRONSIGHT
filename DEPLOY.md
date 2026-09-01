@@ -5,7 +5,7 @@ below is tuning.
 
 ---
 
-## 1. Vercel (fastest path to `ironsight.trippy.lol`)
+## 1. Vercel (fastest path to `isharethings.com`)
 
 ```bash
 git push origin main          # your fork
@@ -21,11 +21,15 @@ requires a redeploy, not just a restart:
 
 | Variable | Value |
 |---|---|
-| `NEXT_PUBLIC_SITE_URL` | `https://ironsight.trippy.lol` |
+| `NEXT_PUBLIC_SITE_URL` | `https://isharethings.com` |
 | `CSP_MODE` | `report-only` for the first deploy — see below |
 
-Then **Settings → Domains → Add** `ironsight.trippy.lol`, and at your DNS host
-add the `CNAME` Vercel gives you.
+Then **Settings → Domains → Add** `isharethings.com`. Because this is an apex
+domain rather than a subdomain, Vercel asks for an **A record**, not a `CNAME` —
+read the exact address off the dashboard rather than from memory. Delete any
+registrar parking records at the root first; two conflicting A records at the
+apex fail intermittently in a way that looks like slow propagation. Add
+`www.isharethings.com` in the same screen and redirect it to the apex.
 
 ### Turning on CSP safely
 
@@ -66,7 +70,7 @@ The container binds to `127.0.0.1:3000` only. Terminate TLS in front of it with
 Caddy, nginx, or Cloudflare Tunnel. A minimal Caddyfile:
 
 ```
-ironsight.trippy.lol {
+isharethings.com {
     reverse_proxy 127.0.0.1:3000
 }
 ```
