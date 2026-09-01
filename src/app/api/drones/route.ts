@@ -96,7 +96,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetchWithTimeout('https://neptun.in.ua/api/data', {
       timeout: 10000,
-      headers: { 'User-Agent': 'IronSight/1.0', 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json' },
     });
     if (!res.ok) throw new Error(`Neptun HTTP ${res.status}`);
     const data = await res.json();

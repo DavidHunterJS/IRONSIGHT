@@ -21,7 +21,7 @@ export async function GET() {
 
     const res = await fetchWithTimeout(url, {
       timeout: 8000,
-      headers: { 'User-Agent': 'IronSight/1.0', Accept: 'application/json' },
+      headers: { Accept: 'application/json' },
     });
 
     if (!res.ok) throw new Error('CoinGecko API failed');

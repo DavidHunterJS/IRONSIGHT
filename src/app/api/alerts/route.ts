@@ -88,7 +88,7 @@ async function fetchTzevaAdomAlerts(
   try {
     const res = await fetchWithTimeout('https://api.tzevaadom.co.il/notifications', {
       timeout: 12000,
-      headers: { 'User-Agent': 'IronSight/1.0', 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json' },
     });
 
     if (res.ok) {
@@ -153,7 +153,7 @@ async function fetchUkraineAlerts(
   try {
     const res = await fetchWithTimeout('https://alerts.com.ua/api/states', {
       timeout: 12000,
-      headers: { 'User-Agent': 'IronSight/1.0', 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json' },
     });
     if (res.ok) {
       const data = await res.json();

@@ -77,7 +77,7 @@ export async function GET(req: Request) {
         try {
           const res = await fetchWithTimeout(url, {
             timeout: 8000,
-            headers: { 'User-Agent': 'IronSight/1.0', 'Accept': 'application/rss+xml, text/xml, */*' },
+            headers: { 'Accept': 'application/rss+xml, text/xml, */*' },
           });
           if (!res.ok) throw new Error(`Google News HTTP ${res.status}`);
 
