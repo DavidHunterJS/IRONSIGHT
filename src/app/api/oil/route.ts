@@ -21,7 +21,6 @@ export async function GET() {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?interval=1d&range=5d`;
           const res = await fetchWithTimeout(url, {
             timeout: 8000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
           });
           if (!res.ok) throw new Error('Failed');
           const data = await res.json();

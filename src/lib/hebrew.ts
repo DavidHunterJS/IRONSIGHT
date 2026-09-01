@@ -106,6 +106,12 @@ export async function translateFreeText(text: string): Promise<string> {
 
     const res = await fetch(url, {
       signal: AbortSignal.timeout(3000),
+      // The only remaining User-Agent override in the codebase. Google's
+      // undocumented translate endpoint rate-limited both this UA and our own
+      // identifying one during testing, so whether the spoof still buys
+      // anything could not be shown either way. Left in place rather than
+      // removed on a guess, because losing it would silently drop Hebrew
+      // translation in the Iran/Israel theater.
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
     });
 

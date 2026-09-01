@@ -28,7 +28,6 @@ export async function GET(req: Request) {
       'https://gamma-api.polymarket.com/markets?limit=500&closed=false&active=true&order=volume24hr&ascending=false',
       {
         signal: AbortSignal.timeout(10000),
-        headers: { 'User-Agent': 'IronSight/1.0' },
       }
     );
 
