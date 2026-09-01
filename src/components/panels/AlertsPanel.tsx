@@ -5,9 +5,11 @@ import { useConflictFeed } from '@/lib/hooks';
 import { useConflict } from '@/lib/conflicts/context';
 import { playAlertSound } from '@/lib/generateAlert';
 import { BRAND } from '@/lib/brand';
+import type { AlertStatus } from '@/lib/alertStatus';
 
 interface AlertData {
-  status: 'ACTIVE' | 'CLEAR';
+  status: AlertStatus;
+  provider: string | null;
   activeCount: number;
   alerts: {
     id: string;
@@ -75,7 +77,7 @@ export default function AlertsPanel() {
   useEffect(() => {
     if (!data) return;
 
-    if (data.status === 'ACTIVE' && prevStatus.current === 'CLEAR' && soundEnabled && hasInteracted) {
+    if (data.status === 'ACTIVE' && prevStatus.current !== 'ACTIVE' && soundEnabled && hasInteracted) {
       // Play urgent sound for new alerts
       playAlertSound('urgent');
 
@@ -101,6 +103,12 @@ export default function AlertsPanel() {
 
   const isActive = data?.status === 'ACTIVE';
   const hasThreat = isActive || drones.length > 0;
+  // An empty alert list is only reassuring when the provider actually answered.
+  // These two states must never be painted green: one means the upstream is
+  // unreachable, the other that this theater has no mirror at all.
+  const isUnavailable = data?.status === 'UNAVAILABLE';
+  const isNoSource = data?.status === 'NO_SOURCE';
+  const canReassure = data?.status === 'CLEAR';
 
   return (
     <div
@@ -111,7 +119,11 @@ export default function AlertsPanel() {
         <span
           className="status-dot"
           style={{
-            background: hasThreat ? 'var(--red)' : 'var(--green)',
+            background: hasThreat
+              ? 'var(--red)'
+              : canReassure
+                ? 'var(--green)'
+                : 'var(--text-secondary)',
             animation: hasThreat ? 'pulse-dot 0.5s ease-in-out infinite' : undefined,
           }}
         />
@@ -136,11 +148,23 @@ export default function AlertsPanel() {
             {soundEnabled ? '🔔' : '🔕'}
           </button>
           <span className="text-[9px] font-normal normal-case tracking-normal"
-            style={{ color: hasThreat ? 'var(--red)' : 'var(--green)' }}
+            style={{
+              color: hasThreat
+                ? 'var(--red)'
+                : canReassure
+                  ? 'var(--green)'
+                  : isUnavailable
+                    ? 'var(--red, #ef4444)'
+                    : 'var(--text-secondary)',
+            }}
           >
             {hasThreat
               ? `${data?.activeCount || 0} ALERT${drones.length ? ` · ${drones.length} TRK` : ''}`
-              : 'ALL CLEAR'}
+              : isUnavailable
+                ? 'FEED DOWN'
+                : isNoSource
+                  ? 'NO SOURCE'
+                  : 'ALL CLEAR'}
           </span>
         </div>
       </div>
@@ -212,6 +236,42 @@ export default function AlertsPanel() {
           // Drones inbound but no oblast siren active — the LIVE TRACKS section above covers it
           <div className="px-3 py-2 text-[9px] text-[var(--text-secondary)]">
             No oblast air-raid sirens active · tracking {drones.length} inbound threat{drones.length > 1 ? 's' : ''} above
+          </div>
+        ) : isUnavailable || isNoSource ? (
+          // Neither of these is an all-clear. Rendering the green shield here
+          // would tell a reader the sky is quiet when the truth is that nothing
+          // is being watched.
+          <div className="flex flex-col items-center justify-center h-full p-4">
+            <div className="relative w-16 h-16 mb-3">
+              {isUnavailable ? (
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full" stroke="var(--red, #ef4444)" strokeWidth="1.5">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="rgba(239,68,68,0.1)" strokeLinejoin="round" />
+                  <path d="M12 9v4" strokeLinecap="round" />
+                  <path d="M12 17h.01" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full" stroke="var(--text-secondary)" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="9" fill="rgba(148,163,184,0.08)" />
+                  <path d="M5.64 5.64l12.72 12.72" strokeLinecap="round" />
+                </svg>
+              )}
+            </div>
+            <div
+              className="text-sm font-bold mb-1"
+              style={{ color: isUnavailable ? 'var(--red, #ef4444)' : 'var(--text-secondary)' }}
+            >
+              {isUnavailable ? 'ALERT FEED DOWN' : 'NO ALERT SOURCE'}
+            </div>
+            <div className="text-[9px] text-[var(--text-secondary)] text-center max-w-[240px] leading-relaxed">
+              {isUnavailable
+                ? `${alertSystemName} is not responding. This is not an all-clear — the current alert state is unknown.`
+                : 'This theater has no public air-raid mirror. Alert status is not monitored here.'}
+            </div>
+            {isUnavailable && (
+              <div className="text-[8px] text-[var(--text-secondary)] mt-2">
+                Retrying every 5s • Last attempt: {data?.lastChecked ? new Date(data.lastChecked).toLocaleTimeString() : '...'}
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-4">
