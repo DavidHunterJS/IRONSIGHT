@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,25 +77,33 @@ export async function GET(req: Request) {
     const highIntensity = events.filter(e => e!.intensity === 'high' || e!.intensity === 'extreme').length;
     const possibleExplosions = events.filter(e => e!.possibleExplosion).length;
 
-    return NextResponse.json({
-      total,
-      highIntensity,
-      possibleExplosions,
-      events,
-      source: 'NASA FIRMS VIIRS',
-      updated: new Date().toISOString(),
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=300' },
-    });
+    return feedResponse(
+      {
+        total,
+        highIntensity,
+        possibleExplosions,
+        events,
+        source: 'NASA FIRMS VIIRS',
+        updated: new Date().toISOString(),
+      },
+      { sourcesOk: 1, sourcesTotal: 1 },
+      { headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=300' } },
+    );
   } catch (err) {
     console.error('FIRMS fetch error:', err);
-    return NextResponse.json({
-      total: 0,
-      highIntensity: 0,
-      possibleExplosions: 0,
-      events: [],
-      source: 'NASA FIRMS VIIRS',
-      error: 'Failed to fetch satellite data',
-    }, { status: 200 });
+    // Previously 200 with an empty events array, which the client could only
+    // read as "no thermal anomalies" — an assertion this route cannot make when
+    // the FIRMS fetch failed.
+    return feedUnavailable(
+      {
+        total: 0,
+        highIntensity: 0,
+        possibleExplosions: 0,
+        events: [],
+        source: 'NASA FIRMS VIIRS',
+        updated: new Date().toISOString(),
+      },
+      err,
+    );
   }
 }

@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { fetchWithTimeout, parseXML, getTextContent } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +65,8 @@ export async function GET(req: Request) {
 
   // Fetch 3 countries at a time to avoid rate limiting Google
   const results: { name: string; flag: string; events: CountryEvent[]; level: string }[] = [];
+  const sourcesTotal = countryQueries.length;
+  let sourcesOk = 0;
 
   // Process in batches of 3
   for (let i = 0; i < countryQueries.length; i += 3) {
@@ -77,7 +79,7 @@ export async function GET(req: Request) {
             timeout: 8000,
             headers: { 'User-Agent': 'IronSight/1.0', 'Accept': 'application/rss+xml, text/xml, */*' },
           });
-          if (!res.ok) return { ...country, events: [] };
+          if (!res.ok) throw new Error(`Google News HTTP ${res.status}`);
 
           const text = await res.text();
           const doc = parseXML(text);
@@ -110,14 +112,17 @@ export async function GET(req: Request) {
           }
 
           return { ...country, events };
-        } catch {
-          return { ...country, events: [] };
+        } catch (err) {
+          // Rethrow: an empty event list here would render as CLEAR, which is a
+          // claim this route cannot make about a country it failed to fetch.
+          throw err;
         }
       })
     );
 
     for (const r of batchResults) {
       if (r.status === 'fulfilled') {
+        sourcesOk += 1;
         const c = r.value;
         results.push({
           name: c.name,
@@ -133,10 +138,16 @@ export async function GET(req: Request) {
   const levelOrder: Record<string, number> = { CRITICAL: 0, ALERT: 1, MONITORING: 2, CLEAR: 3 };
   results.sort((a, b) => (levelOrder[a.level] ?? 3) - (levelOrder[b.level] ?? 3));
 
-  return NextResponse.json({
-    alerts: results,
-    updated: new Date().toISOString(),
-  }, {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-  });
+  if (sourcesOk === 0 && sourcesTotal > 0) {
+    return feedUnavailable(
+      { alerts: [], updated: new Date().toISOString() },
+      new Error('all country queries failed'),
+    );
+  }
+
+  return feedResponse(
+    { alerts: results, updated: new Date().toISOString() },
+    { status: sourcesOk < sourcesTotal ? 'degraded' : 'ok', sourcesOk, sourcesTotal },
+    { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+  );
 }

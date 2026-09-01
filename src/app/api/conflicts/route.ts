@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
 import { fetchWithTimeout, parseXML, getTextContent } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
 import type { ConflictEvent } from '@/types';
+import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     queries.map(async (query) => {
       const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
       const res = await fetchWithTimeout(url, { timeout: 8000 });
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error(`Google News HTTP ${res.status}`);
 
       const text = await res.text();
       const doc = parseXML(text);
@@ -74,7 +74,16 @@ export async function GET(req: Request) {
   // Sort newest first
   allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  return NextResponse.json(allEvents, {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-  });
+  // allSettled was already here; its rejections were simply discarded, so a
+  // route with every source down looked identical to a quiet news cycle.
+  const { status, sourcesOk, sourcesTotal } = statusFromSettled(results);
+  if (status === 'error') {
+    return feedUnavailable([] as ConflictEvent[], new Error('all news queries failed'));
+  }
+
+  return feedResponse(
+    allEvents,
+    { status, sourcesOk, sourcesTotal },
+    { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+  );
 }

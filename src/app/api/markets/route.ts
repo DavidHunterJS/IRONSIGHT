@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
+import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +31,12 @@ async function fetchYahoo(sym: string) {
 
 export async function GET() {
   try {
-    const markets = await Promise.all(
+    // Previously Promise.all with an inner catch that substituted price: 0.
+    // A failed symbol rendered as a real quote of $0.00 — a wrong number shown
+    // as fact, which is worse than showing nothing. Let it reject and drop it.
+    const settled = await Promise.allSettled(
       SYMBOLS.map(async (s) => {
-        try {
+        {
           const meta = await fetchYahoo(s.symbol);
           if (!meta) throw new Error('No data');
 
@@ -49,23 +52,23 @@ export async function GET() {
             change,
             changePercent: pct,
           };
-        } catch {
-          return {
-            symbol: s.symbol,
-            name: s.name,
-            price: 0,
-            change: 0,
-            changePercent: 0,
-            error: true,
-          };
         }
       })
     );
 
-    return NextResponse.json(markets, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' },
-    });
-  } catch {
-    return NextResponse.json([], { status: 500 });
+    const { status, sourcesOk, sourcesTotal } = statusFromSettled(settled);
+    const markets = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+
+    if (status === 'error') {
+      return feedUnavailable([], new Error('all market symbols failed'));
+    }
+
+    return feedResponse(
+      markets,
+      { status, sourcesOk, sourcesTotal },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' } },
+    );
+  } catch (err) {
+    return feedUnavailable([], err);
   }
 }

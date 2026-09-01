@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { fetchWithTimeout, parseXML, getTextContent } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +10,11 @@ export async function GET(req: Request) {
   const strikes: StrikeEvent[] = [];
 
   const queries = server.strikeQueries;
+
+  // Count sources rather than silently skipping them: every query could fail
+  // bar one and the panel would still have reported a healthy feed.
+  const sourcesTotal = queries.length;
+  let sourcesOk = 0;
 
   for (const q of queries) {
     try {
@@ -60,6 +65,7 @@ export async function GET(req: Request) {
           category, severity, title, source, url: link, country,
         });
       }
+      sourcesOk += 1;
     } catch { continue; }
   }
 
@@ -74,9 +80,15 @@ export async function GET(req: Request) {
 
   deduped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  return NextResponse.json(deduped.slice(0, 25), {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-  });
+  if (sourcesOk === 0 && sourcesTotal > 0) {
+    return feedUnavailable([] as StrikeEvent[], new Error('all strike queries failed'));
+  }
+
+  return feedResponse(
+    deduped.slice(0, 25),
+    { status: sourcesOk < sourcesTotal ? 'degraded' : 'ok', sourcesOk, sourcesTotal },
+    { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+  );
 }
 
 interface StrikeEvent {
