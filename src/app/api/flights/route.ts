@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,21 +104,24 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({
-      total: totalRegion,
-      military: flights.length,
-      flights,
-      source: 'adsb.lol',
-      updated: new Date().toISOString(),
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=10' },
-    });
+    return feedResponse(
+      {
+        total: totalRegion,
+        military: flights.length,
+        flights,
+        source: 'adsb.lol',
+        updated: new Date().toISOString(),
+      },
+      { sourcesOk: 1, sourcesTotal: 1 },
+      { headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=10' } },
+    );
   } catch (err) {
     console.error('Flights fetch error:', err);
-    return NextResponse.json({
-      total: 0, military: 0, flights: [],
-      source: 'adsb.lol', updated: new Date().toISOString(),
-    }, { status: 200 });
+    // An ADS-B outage is not the same claim as "no military aircraft airborne".
+    return feedUnavailable(
+      { total: 0, military: 0, flights: [], source: 'adsb.lol', updated: new Date().toISOString() },
+      err,
+    );
   }
 }
 

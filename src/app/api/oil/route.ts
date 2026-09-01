@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
+import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +14,10 @@ const COMMODITIES = [
 
 export async function GET() {
   try {
-    const prices = await Promise.all(
+    // Same as markets: a failed commodity used to render as $0.00.
+    const settled = await Promise.allSettled(
       COMMODITIES.map(async (c) => {
-        try {
+        {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?interval=1d&range=5d`;
           const res = await fetchWithTimeout(url, {
             timeout: 8000,
@@ -41,24 +42,23 @@ export async function GET() {
             currency: 'USD',
             updated: new Date().toISOString(),
           };
-        } catch {
-          return {
-            type: c.type,
-            name: c.name,
-            price: 0,
-            change: 0,
-            changePercent: 0,
-            currency: 'USD',
-            updated: new Date().toISOString(),
-          };
         }
       })
     );
 
-    return NextResponse.json(prices, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' },
-    });
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch oil prices' }, { status: 500 });
+    const { status, sourcesOk, sourcesTotal } = statusFromSettled(settled);
+    const prices = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+
+    if (status === 'error') {
+      return feedUnavailable([], new Error('all commodity symbols failed'));
+    }
+
+    return feedResponse(
+      prices,
+      { status, sourcesOk, sourcesTotal },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' } },
+    );
+  } catch (err) {
+    return feedUnavailable([], err);
   }
 }

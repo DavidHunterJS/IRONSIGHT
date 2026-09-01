@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { translateFreeText } from '@/lib/hebrew';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +83,14 @@ export async function GET(req: Request) {
 
   // No drone source for this theater — return empty (panel/layer stays quiet)
   if (server.droneProvider !== 'neptun') {
-    return NextResponse.json({ drones: [], count: 0, ballisticThreat: false, source: null, updated: new Date().toISOString() });
+    // No provider for this theater. Genuinely empty, not a failure.
+    return feedResponse({
+      drones: [],
+      count: 0,
+      ballisticThreat: false,
+      source: null,
+      updated: new Date().toISOString(),
+    });
   }
 
   try {
@@ -124,17 +131,22 @@ export async function GET(req: Request) {
         })
     );
 
-    return NextResponse.json({
-      drones,
-      count: drones.length,
-      ballisticThreat: !!data?.ballistic_threat,
-      source: 'Neptun',
-      updated: new Date().toISOString(),
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=10' },
-    });
+    return feedResponse(
+      {
+        drones,
+        count: drones.length,
+        ballisticThreat: !!data?.ballistic_threat,
+        source: 'Neptun',
+        updated: new Date().toISOString(),
+      },
+      { sourcesOk: 1, sourcesTotal: 1 },
+      { headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=10' } },
+    );
   } catch (err) {
     console.error('Neptun drone fetch error:', err);
-    return NextResponse.json({ drones: [], count: 0, ballisticThreat: false, source: 'Neptun', error: 'fetch failed', updated: new Date().toISOString() }, { status: 200 });
+    return feedUnavailable(
+      { drones: [], count: 0, ballisticThreat: false, source: 'Neptun', updated: new Date().toISOString() },
+      err,
+    );
   }
 }

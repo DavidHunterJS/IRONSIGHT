@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { getConflictFromRequest } from '@/lib/conflicts';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +33,10 @@ export async function GET(req: Request) {
     );
 
     if (!res.ok) {
-      return NextResponse.json({ markets: [], error: 'API error' }, { status: 200 });
+      return feedUnavailable(
+        { markets: [], count: 0, updated: new Date().toISOString() },
+        new Error(`Polymarket HTTP ${res.status}`),
+      );
     }
 
     const data: PolymarketMarket[] = await res.json();
@@ -67,14 +70,16 @@ export async function GET(req: Request) {
       })
       .slice(0, 20);
 
-    return NextResponse.json({
-      markets: filtered,
-      count: filtered.length,
-      updated: new Date().toISOString(),
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
-    });
-  } catch {
-    return NextResponse.json({ markets: [], error: 'Fetch failed' }, { status: 200 });
+    return feedResponse(
+      {
+        markets: filtered,
+        count: filtered.length,
+        updated: new Date().toISOString(),
+      },
+      { sourcesOk: 1, sourcesTotal: 1 },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+    );
+  } catch (err) {
+    return feedUnavailable({ markets: [], count: 0, updated: new Date().toISOString() }, err);
   }
 }

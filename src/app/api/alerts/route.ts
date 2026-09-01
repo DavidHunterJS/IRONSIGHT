@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
 import { translateHebrew, translateCities, isHebrew, translateFreeText, CITY_TRANSLATIONS } from '@/lib/hebrew';
 import { getConflictFromRequest } from '@/lib/conflicts';
 import { deriveAlertStatus } from '@/lib/alertStatus';
+import { feedResponse } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,18 +56,27 @@ export async function GET(req: Request) {
 
   const status = deriveAlertStatus({ hasProvider, fetchOk, activeCount: allAlerts.length });
 
-  return NextResponse.json({
-    status,
-    activeCount: allAlerts.length,
-    alerts: allAlerts,
-    lastChecked: new Date().toISOString(),
-    source: sourceLabel,
-    // null = no air-raid mirror for this theater, so CLEAR means "no source",
-    // not "checked and quiet". The panel does not distinguish these yet.
-    provider: server.alertProvider ?? null,
-  }, {
-    headers: { 'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=3' }, // Check every 5 seconds
-  });
+  // Deliberately 200 even when the provider is unreachable: the panel renders
+  // its own UNAVAILABLE state from the body, and a 503 would replace that with
+  // a generic feed fallback, losing the distinction between "provider down" and
+  // "this theater has no mirror". The header still reports degraded so the feed
+  // badge does not claim the panel is fully live.
+  return feedResponse(
+    {
+      status,
+      activeCount: allAlerts.length,
+      alerts: allAlerts,
+      lastChecked: new Date().toISOString(),
+      source: sourceLabel,
+      // null = no air-raid mirror for this theater, so CLEAR means "no source",
+      // not "checked and quiet".
+      provider: server.alertProvider ?? null,
+    },
+    hasProvider
+      ? { status: fetchOk ? 'ok' : 'degraded', sourcesOk: fetchOk ? 1 : 0, sourcesTotal: 1 }
+      : { status: 'ok' },
+    { headers: { 'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=3' } },
+  );
 }
 
 // --- Provider: Israeli Home Front Command via Tzeva Adom (Hebrew) ---

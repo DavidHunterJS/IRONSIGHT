@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 
 import { fetchWithTimeout } from '@/lib/fetcher';
+import { feedResponse, feedUnavailable } from '@/lib/api/respond';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,23 +27,35 @@ export async function GET() {
     if (!res.ok) throw new Error('CoinGecko API failed');
     const data = await res.json();
 
-    const prices = COINS.map(id => {
+    // Coins missing from the response are dropped rather than shown at $0.
+    const prices = COINS.flatMap((id) => {
       const coin = data[id];
       const meta = COIN_META[id];
-      if (!coin) return { name: meta.name, symbol: meta.symbol, price: 0, changePercent: 0, error: true };
-
-      return {
-        name: meta.name,
-        symbol: meta.symbol,
-        price: coin.usd,
-        changePercent: Math.round((coin.usd_24h_change || 0) * 100) / 100,
-      };
+      if (!coin) return [];
+      return [
+        {
+          name: meta.name,
+          symbol: meta.symbol,
+          price: coin.usd,
+          changePercent: Math.round((coin.usd_24h_change || 0) * 100) / 100,
+        },
+      ];
     });
 
-    return NextResponse.json(prices, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' },
-    });
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch crypto prices' }, { status: 500 });
+    if (prices.length === 0) {
+      return feedUnavailable([], new Error('no coins returned'));
+    }
+
+    return feedResponse(
+      prices,
+      {
+        status: prices.length < COINS.length ? 'degraded' : 'ok',
+        sourcesOk: prices.length,
+        sourcesTotal: COINS.length,
+      },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=120' } },
+    );
+  } catch (err) {
+    return feedUnavailable([], err);
   }
 }
