@@ -6,6 +6,7 @@ import { ENABLED_THEATERS } from '@/lib/config';
 import type { ConflictConfig } from './types';
 import { iranIsrael } from './iran-israel';
 import { russiaUkraine } from './russia-ukraine';
+import { taiwanChina } from './taiwan-china';
 
 export * from './types';
 
@@ -14,6 +15,7 @@ export * from './types';
 const REGISTRY = {
   'iran-israel': iranIsrael,
   'russia-ukraine': russiaUkraine,
+  'taiwan-china': taiwanChina,
 } satisfies Record<string, ConflictConfig>;
 
 export type ConflictKey = keyof typeof REGISTRY;

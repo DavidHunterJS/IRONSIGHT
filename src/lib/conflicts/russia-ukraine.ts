@@ -59,7 +59,7 @@ export const russiaUkraine: ConflictConfig = {
       'mykolaiv': [46.98, 31.99], 'kherson': [46.64, 32.62], 'mariupol': [47.10, 37.54],
       'bakhmut': [48.60, 38.00], 'avdiivka': [48.14, 37.75], 'kramatorsk': [48.72, 37.58],
       'sumy': [50.91, 34.80], 'chernihiv': [51.49, 31.29], 'donetsk': [48.02, 37.80],
-      'luhansk': [48.57, 39.31], 'pokrovsk': [48.28, 37.18], 'enerhodar': [47.50, 34.66],
+      'luhansk': [48.57, 39.31], 'pokrovsk': [48.28, 37.18], 'enerhodar': [47.50, 34.66], 'zaporizhzhia npp': [47.50, 34.66],
       'ukraine': [49.0, 32.0],
       // Russia
       'moscow': [55.76, 37.62], 'belgorod': [50.60, 36.59], 'kursk': [51.74, 36.19],
