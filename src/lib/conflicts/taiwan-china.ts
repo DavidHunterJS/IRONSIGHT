@@ -315,7 +315,7 @@ export const taiwanChina: ConflictConfig = {
     // Require a theater geography or actor term. "china" and "japan" alone are
     // broad, so the list leans on place names and military vocabulary that a
     // generic Asia-business story will not carry.
-    newsRelevanceKeywords: /taiwan|taipei|kaohsiung|taichung|tainan|hsinchu|hualien|kinmen|quemoy|matsu|penghu|pratas|tsmc|cross-?strait|taiwan strait|median line|adiz|\bpla\b|pla navy|pla air force|plaaf|plan\b|eastern theater|rocket force|beijing|xi jinping|chinese coast guard|south china sea|east china sea|senkaku|diaoyu|yonaguni|miyako|bashi|scarborough|second thomas|spratly|paracel|woody island|okinawa|ryukyu|guam|indo-?pacific|seventh fleet|7th fleet/i,
+    newsRelevanceKeywords: /taiwan|taipei|kaohsiung|taichung|tainan|hsinchu|hualien|kinmen|quemoy|\bmatsu\b|penghu|pratas|tsmc|cross-?strait|taiwan strait|median line|adiz|\bpla\b|pla navy|pla air force|plaaf|eastern theater|rocket force|beijing|xi jinping|chinese coast guard|south china sea|east china sea|senkaku|diaoyu|yonaguni|miyako|\bbashi\b|scarborough|second thomas|spratly|paracel|woody island|okinawa|ryukyu|guam|indo-?pacific|seventh fleet|7th fleet/i,
 
     // Verified active on 2026-09-01. Deliberately short: the telegram route does
     // no relevance filtering, so a general OSINT channel would fill this panel
