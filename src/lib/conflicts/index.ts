@@ -9,6 +9,7 @@ import { russiaUkraine } from './russia-ukraine';
 import { taiwanChina } from './taiwan-china';
 import { northKorea } from './north-korea';
 import { redSea } from './red-sea';
+import { global as globalTheater } from './global';
 
 export * from './types';
 
@@ -20,6 +21,7 @@ const REGISTRY = {
   'taiwan-china': taiwanChina,
   'north-korea': northKorea,
   'red-sea': redSea,
+  global: globalTheater,
 } satisfies Record<string, ConflictConfig>;
 
 export type ConflictKey = keyof typeof REGISTRY;
