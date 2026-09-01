@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import { useConflict } from '@/lib/conflicts/context';
 import type { RegionBox } from '@/lib/conflicts';
 
@@ -43,15 +44,18 @@ function getRegion(lat: number, lon: number, boxes: RegionBox[], fallback: strin
 export default function SatellitePanel() {
   const { config } = useConflict();
   const { regionBoxes, defaultRegion } = config.client;
-  const { data, loading } = useConflictFeed<FIRMSData>('/api/fires', 600000); // 10 min refresh
+  const { data, status, error, lastUpdated, sources, refetch } =
+    useConflictFeed<FIRMSData>('/api/fires', 600000); // 10 min refresh
+  const events = data?.events ?? [];
 
   return (
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
         <span className="status-dot" style={{ background: '#ff6600' }} />
         SAT THERMAL DETECT
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          NASA FIRMS
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>NASA FIRMS</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
 
@@ -72,18 +76,16 @@ export default function SatellitePanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-10 rounded" />
-            ))}
-          </div>
-        ) : data?.events.length === 0 ? (
-          <div className="p-4 text-center text-[var(--text-secondary)] text-xs">
-            No thermal anomalies detected in region
-          </div>
+        {shouldShowFallback(status, events.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={5}
+            emptyNote="No thermal anomalies in this region on the latest VIIRS pass."
+          />
         ) : (
-          data?.events.slice(0, 30).map((event, i) => {
+          events.slice(0, 30).map((event, i) => {
             const region = getRegion(event.lat, event.lon, regionBoxes, defaultRegion);
             return (
               <div

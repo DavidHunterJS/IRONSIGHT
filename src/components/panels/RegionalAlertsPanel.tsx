@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useConflictFeed, timeAgo, useTick } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import { useConflict } from '@/lib/conflicts/context';
 
 interface CountryEvent {
@@ -42,7 +43,8 @@ const SEVERITY_COLORS: Record<string, string> = {
 export default function RegionalAlertsPanel() {
   const { config } = useConflict();
   const COUNTRY_COLORS = config.client.countryColors;
-  const { data, loading } = useConflictFeed<RegionalData>('/api/regional-alerts', 60000);
+  const { data, status, error, lastUpdated, sources, refetch } =
+    useConflictFeed<RegionalData>('/api/regional-alerts', 60000);
   useTick(15000);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -78,18 +80,21 @@ export default function RegionalAlertsPanel() {
           }}
         />
         REGIONAL THREAT MONITOR
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          {sorted.filter(a => a.level !== 'CLEAR').length} active
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>{sorted.filter(a => a.level !== 'CLEAR').length} active</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-12 rounded" />
-            ))}
-          </div>
+        {shouldShowFallback(status, sorted.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={5}
+            emptyNote="No country reporting matched for this theater."
+          />
         ) : (
           sorted.map((country, i) => {
             const levelConfig = LEVEL_CONFIG[country.level] || LEVEL_CONFIG.CLEAR;

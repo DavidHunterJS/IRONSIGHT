@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed, timeAgo, useTick } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import type { ConflictEvent } from '@/types';
 
 const TYPE_COLORS: Record<string, string> = {
@@ -13,36 +14,42 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function ConflictFeed() {
-  const { data: rawEvents, loading } = useConflictFeed<ConflictEvent[]>('/api/conflicts', 180000);
+  const {
+    data: rawEvents,
+    status,
+    error,
+    lastUpdated,
+    sources,
+    refetch,
+  } = useConflictFeed<ConflictEvent[]>('/api/conflicts', 180000);
   useTick(15000);
 
   // Sort most recent first
-  const events = rawEvents ? [...rawEvents].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  ) : null;
+  const events = rawEvents
+    ? [...rawEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    : [];
 
   return (
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
         <span className="status-dot" style={{ background: 'var(--red)' }} />
         CONFLICT MONITOR
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          {events?.length || 0} events
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>{events.length} events</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-14 rounded" />
-            ))}
-          </div>
-        ) : events?.length === 0 ? (
-          <div className="p-4 text-center text-[var(--text-secondary)] text-xs">
-            No recent conflict events reported
-          </div>
+        {shouldShowFallback(status, events.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={6}
+            emptyNote="No conflict events matched in the current reporting window."
+          />
         ) : (
-          events?.map((event, i) => {
+          events.map((event, i) => {
             const color = TYPE_COLORS[event.type] || TYPE_COLORS.REPORT;
             return (
               <div key={i} className="data-row">

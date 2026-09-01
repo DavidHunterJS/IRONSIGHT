@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed, formatPrice, formatChange } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 
 interface OilData {
   type: string;
@@ -12,23 +13,30 @@ interface OilData {
 }
 
 export default function OilPanel() {
-  const { data: prices, loading } = useConflictFeed<OilData[]>('/api/oil', 600000);
+  const {
+    data: rawPrices,
+    status,
+    error,
+    lastUpdated,
+    sources,
+    refetch,
+  } = useConflictFeed<OilData[]>('/api/oil', 600000);
+  const prices = rawPrices ?? [];
 
   return (
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
         <span className="status-dot" />
         ENERGY MARKETS
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-10 rounded" />
-            ))}
-          </div>
+        {shouldShowFallback(status, prices.length > 0) ? (
+          <FeedFallback status={status} error={error} onRetry={refetch} rows={5} />
         ) : (
-          prices?.map((item, i) => (
+          prices.map((item, i) => (
             <div key={i} className="data-row flex items-center justify-between">
               <div>
                 <div className="text-[11px] font-medium text-[var(--text-primary)]">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 
 interface MilFlight {
   icao24: string;
@@ -62,11 +63,13 @@ function focusOnMapTarget(id: string, lat: number, lon: number, type: 'aircraft'
 }
 
 export default function FlightsPanel() {
-  const { data, loading } = useConflictFeed<FlightDataResponse>('/api/flights', 180000);
+  const { data, status, error, lastUpdated, sources, refetch } =
+    useConflictFeed<FlightDataResponse>('/api/flights', 180000);
+  const flights = data?.flights ?? [];
 
   // Group by type
   const byType: Record<string, number> = {};
-  data?.flights.forEach(f => {
+  flights.forEach(f => {
     byType[f.type] = (byType[f.type] || 0) + 1;
   });
 
@@ -75,22 +78,20 @@ export default function FlightsPanel() {
       <div className="panel-header">
         <span className="status-dot" style={{ background: 'var(--cyan)' }} />
         MIL AIRSPACE
-        <span className="ml-auto text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
-          {data?.military || 0} mil / {data?.total || 0} total // adsb.lol
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)] font-normal normal-case tracking-normal">
+          <span>{data?.military || 0} mil / {data?.total || 0} total // adsb.lol</span>
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
         </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-8 rounded" />
-            ))}
-          </div>
-        ) : data?.flights.length === 0 ? (
-          <div className="p-4 text-center text-[var(--text-secondary)] text-xs">
-            No military aircraft detected on ADS-B<br />
-            <span className="text-[8px]">(many mil flights disable transponders)</span>
-          </div>
+        {shouldShowFallback(status, flights.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={5}
+            emptyNote="No military aircraft on ADS-B in this box. Many military flights fly with transponders off, so this is normal."
+          />
         ) : (
           <>
             {Object.keys(byType).length > 0 && (

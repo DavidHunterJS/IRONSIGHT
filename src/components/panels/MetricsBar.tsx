@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed, formatPrice } from '@/lib/hooks';
+import { FeedBadge } from '@/components/FeedState';
 
 interface OilData {
   type: string;
@@ -11,7 +12,12 @@ interface OilData {
 }
 
 export default function MetricsBar() {
-  const { data: oilData } = useConflictFeed<OilData[]>('/api/oil', 600000);
+  const {
+    data: oilData,
+    status,
+    lastUpdated,
+    sources,
+  } = useConflictFeed<OilData[]>('/api/oil', 600000);
 
   const wti = oilData?.find(o => o.type === 'crude_wti');
   const brent = oilData?.find(o => o.type === 'crude_brent');
@@ -77,6 +83,11 @@ export default function MetricsBar() {
           )}
         </div>
       ))}
+      {/* Without this the strip cannot distinguish a live quote from one that
+          stopped refreshing twenty minutes ago. */}
+      <div className="flex items-center px-4 py-2 whitespace-nowrap">
+        <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
+      </div>
     </div>
   );
 }

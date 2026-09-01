@@ -1,6 +1,7 @@
 'use client';
 
 import { useConflictFeed } from '@/lib/hooks';
+import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 
 interface MarketOutcome {
   label: string;
@@ -31,7 +32,9 @@ function formatVolume(v: number): string {
 }
 
 export default function PolymarketPanel() {
-  const { data, loading } = useConflictFeed<PolymarketData>('/api/polymarket', 600000);
+  const { data, status, error, lastUpdated, sources, refetch } =
+    useConflictFeed<PolymarketData>('/api/polymarket', 600000);
+  const markets = data?.markets ?? [];
 
   return (
     <div className="panel h-full flex flex-col">
@@ -40,25 +43,22 @@ export default function PolymarketPanel() {
           <span className="status-dot" style={{ background: '#5affb0' }} />
           PREDICTION MARKETS
         </div>
-        {data && (
-          <span className="text-[9px] text-[var(--text-secondary)]">
-            {data.count} markets // Polymarket
-          </span>
-        )}
+        <span className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-secondary)]">
+          {data && <span>{data.count} markets // Polymarket</span>}
+          <FeedBadge status={status} lastUpdated={lastUpdated} sources={sources} />
+        </span>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="space-y-2 p-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="loading-shimmer h-12 rounded" />
-            ))}
-          </div>
-        ) : !data?.markets?.length ? (
-          <div className="p-4 text-center text-[10px] text-[var(--text-secondary)]">
-            No active prediction markets found
-          </div>
+        {shouldShowFallback(status, markets.length > 0) ? (
+          <FeedFallback
+            status={status}
+            error={error}
+            onRetry={refetch}
+            rows={5}
+            emptyNote="No prediction markets matched this theater's keywords."
+          />
         ) : (
-          data.markets.map((market) => {
+          markets.map((market) => {
             const yesOutcome = market.outcomes.find(o => o.label === 'Yes') || market.outcomes[0];
             const yesPrice = yesOutcome?.price ?? 0;
             const change = market.oneDayPriceChange;

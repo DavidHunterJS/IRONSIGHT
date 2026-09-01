@@ -72,11 +72,19 @@ export function FeedFallback({
   error,
   onRetry,
   rows = 6,
+  emptyNote,
 }: {
   status: FeedStatus;
   error?: string | null;
   onRetry?: () => void;
   rows?: number;
+  /**
+   * Panel-specific explanation for a genuinely empty feed. Several panels carry
+   * domain context worth keeping — that military flights often run with
+   * transponders off, say — which is the difference between "we saw nothing"
+   * and "seeing nothing here is normal".
+   */
+  emptyNote?: string;
 }) {
   if (status === 'loading') {
     return (
@@ -92,8 +100,8 @@ export function FeedFallback({
     return (
       <div className="flex flex-col items-center justify-center h-full gap-1 p-4 text-center">
         <p className="text-[11px] text-[var(--text-secondary)]">NO REPORTABLE ACTIVITY</p>
-        <p className="text-[9px] text-[var(--text-secondary)] opacity-70">
-          Sources responded with no matching items.
+        <p className="text-[9px] text-[var(--text-secondary)] opacity-70 max-w-[30ch] leading-snug">
+          {emptyNote ?? 'Sources responded with no matching items.'}
         </p>
       </div>
     );
