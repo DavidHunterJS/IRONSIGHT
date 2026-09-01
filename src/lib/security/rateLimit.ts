@@ -1,7 +1,7 @@
 // Per-IP rate limiting.
 //
 // Sliding-window counter held in module memory. This is deliberately dependency
-// free so it works identically in `next dev`, Docker, and Vercel middleware.
+// free so it works identically in `next dev`, Docker, and Vercel.
 //
 // SCOPE LIMITATION — read before relying on this in production:
 // the counter is per process. One Docker container = one shared limit (correct).

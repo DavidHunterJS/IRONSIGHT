@@ -74,7 +74,7 @@ export const CACHE_TTL = {
   staleMaxMs: int(process.env.CACHE_STALE_MAX_MS, 15 * 60_000),
 } as const;
 
-/** Per-IP rate limiting applied to /api/* by middleware. */
+/** Per-IP rate limiting applied to /api/* by the proxy. */
 export const RATE_LIMIT = {
   enabled: bool(process.env.RATE_LIMIT_ENABLED, IS_PROD),
   windowMs: int(process.env.RATE_LIMIT_WINDOW_MS, 60_000),

@@ -2,7 +2,7 @@
 //
 // Split into two groups:
 //   - STATIC_SECURITY_HEADERS: constant, also applied via next.config.ts so
-//     they're present even on responses middleware doesn't touch.
+//     they're present even on responses the proxy doesn't touch.
 //   - buildCsp(): per-request, because a nonce is generated per response.
 //
 // CSP allowlist is derived from what the app actually loads:
