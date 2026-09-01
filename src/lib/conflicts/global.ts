@@ -305,12 +305,7 @@ export const global: ConflictConfig = {
       { name: 'OSINTdefender', label: 'OSINT Defender', color: '#00aaff' },
       { name: 'clashreport', label: 'Clash Report', color: '#e67e22' },
       { name: 'warmonitors', label: 'War Monitors', color: '#ffd500' },
-      // disclosetv is active and on-topic but cannot currently be scraped:
-      // findLatestPostId in the telegram route uses fetchPost as an existence
-      // probe, and fetchPost returns null for a post with no text. disclosetv
-      // is media-heavy, so the probe reads its media posts as missing, the ID
-      // search collapses, and the channel yields nothing. Adding it would pin
-      // this panel at 3/4 degraded forever. Add it back once that is fixed.
+      { name: 'disclosetv', label: 'Disclose.tv', color: '#888888' },
     ],
 
     // Empty: a worldwide order of battle is unbounded, and a partial one would
