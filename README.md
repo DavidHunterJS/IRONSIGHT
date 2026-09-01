@@ -167,8 +167,8 @@ Then open [http://localhost:3000](http://localhost:3000). Stop with `Ctrl+C` (or
 Or without Compose:
 
 ```bash
-docker build -t ironsight .
-docker run --rm -p 3000:3000 ironsight
+docker build -t watchfloor .
+docker run --rm -p 3000:3000 watchfloor
 ```
 
 To use a different host port, map it (e.g. `-p 8080:3000`) or edit the `ports` mapping in `docker-compose.yml`.

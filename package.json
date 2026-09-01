@@ -1,5 +1,5 @@
 {
-  "name": "ironsight",
+  "name": "watchfloor",
   "version": "0.2.0",
   "private": true,
   "description": "IRONSIGHT \u2014 real-time OSINT command center aggregating free, public open-source feeds across two conflict theaters (Iran/Israel and Russia/Ukraine). All data belongs to its respective providers; this project claims no ownership.",
