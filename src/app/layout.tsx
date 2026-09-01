@@ -10,7 +10,7 @@ import { SITE_URL } from "@/lib/config";
 // change, not a code change.
 //
 // Note on CSP: we deliberately render no inline <script> tags here. Next.js
-// reads the nonce from the CSP header set in src/middleware.ts and applies it
+// reads the nonce from the CSP header set in src/proxy.ts and applies it
 // to its own bootstrap scripts automatically, so this layout can stay statically
 // rendered. If you ever add your own inline script, read the nonce via
 // `(await headers()).get('x-nonce')` and pass it as the `nonce` prop.

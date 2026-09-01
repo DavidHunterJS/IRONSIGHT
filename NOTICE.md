@@ -16,7 +16,7 @@ the software — do not remove them from `LICENSE`, `src/lib/brand.ts`, or the
 ## Modifications in this fork
 
 - Public-deployment security headers, including a nonce-based Content Security
-  Policy (`src/middleware.ts`, `src/lib/security/headers.ts`, `next.config.ts`).
+  Policy (`src/proxy.ts`, `src/lib/security/headers.ts`, `next.config.ts`).
 - Per-IP rate limiting on `/api/*` (`src/lib/security/rateLimit.ts`).
 - Upstream request protection: hard timeouts, response size caps, per-host
   concurrency limits, and a circuit breaker (`src/lib/upstream.ts`).

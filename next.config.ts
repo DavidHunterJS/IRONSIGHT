@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
-// Baseline security headers are declared here as well as in src/middleware.ts.
-// Middleware handles the per-request CSP nonce; these are the constant headers,
-// duplicated so they still apply to any response path middleware skips (static
+// Baseline security headers are declared here as well as in src/proxy.ts.
+// The proxy handles the per-request CSP nonce; these are the constant headers,
+// duplicated so they still apply to any response path the proxy skips (static
 // files, error pages, and edge cases in some hosting setups). Values are
 // inlined rather than imported because next.config.ts is evaluated outside the
 // app's module graph and does not resolve the "@/" alias.

@@ -22,7 +22,7 @@ import {
 // to its own inline bootstrap scripts, which is why the CSP is set on BOTH the
 // request headers and the response.
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ---- rate limiting -------------------------------------------------------
@@ -83,7 +83,7 @@ function applySecurityHeaders(headers: Headers) {
 export const config = {
   matcher: [
     // Everything except Next internals and static files. Note the negative
-    // lookahead keeps middleware off the hot path for assets.
+    // lookahead keeps the proxy off the hot path for assets.
     {
       source: '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?)$).*)',
       missing: [
