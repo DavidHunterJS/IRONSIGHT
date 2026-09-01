@@ -243,3 +243,41 @@ describe('news relevance filters reject ordinary English', () => {
     expect(tw.test('PLA aircraft crossed the median line')).toBe(true);
   });
 });
+
+describe('red-sea', () => {
+  const cfg = CONFLICTS['red-sea'];
+
+  it('is registered', () => {
+    expect(ALL_CONFLICT_KEYS).toContain('red-sea');
+  });
+
+  it('declares no air-raid provider', () => {
+    expect(cfg.server.alertProvider).toBeUndefined();
+    expect(cfg.client.hasDroneTracker).toBe(false);
+  });
+
+  it('anchors the short place names that sit inside common words', () => {
+    const re = cfg.server.newsRelevanceKeywords;
+    // "aden" inside laden/maiden/garden is the trap this theater walks into.
+    expect(re.test('The vessel was heavily laden with crude')).toBe(false);
+    expect(re.test('A maiden voyage for the new carrier')).toBe(false);
+    expect(re.test('Attack reported in the Gulf of Aden')).toBe(true);
+    expect(re.test('Port of Aden reopened to traffic')).toBe(true);
+  });
+
+  it('does not match ordinary commercial shipping chatter', () => {
+    const re = cfg.server.newsRelevanceKeywords;
+    // The shipping trade press is filtered, so bare "shipping" would drag in
+    // every freight-rate and logistics story they publish.
+    expect(re.test('Retailer offers free shipping this weekend')).toBe(false);
+    expect(re.test('Shipping costs fall on weaker demand')).toBe(false);
+    expect(re.test('Merchant vessel struck in the Red Sea')).toBe(true);
+    expect(re.test('Bab el-Mandeb transits down sharply')).toBe(true);
+  });
+
+  it('is maritime-first: every region it plots is a waterway', () => {
+    // Unlike the land theaters, this one is a corridor. Its ship regions and
+    // maritime regions must agree, or the naval panel silently drops vessels.
+    expect(cfg.server.shipRegions).toEqual(cfg.client.maritimeRegions);
+  });
+});

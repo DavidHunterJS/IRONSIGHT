@@ -8,6 +8,7 @@ import { iranIsrael } from './iran-israel';
 import { russiaUkraine } from './russia-ukraine';
 import { taiwanChina } from './taiwan-china';
 import { northKorea } from './north-korea';
+import { redSea } from './red-sea';
 
 export * from './types';
 
@@ -18,6 +19,7 @@ const REGISTRY = {
   'russia-ukraine': russiaUkraine,
   'taiwan-china': taiwanChina,
   'north-korea': northKorea,
+  'red-sea': redSea,
 } satisfies Record<string, ConflictConfig>;
 
 export type ConflictKey = keyof typeof REGISTRY;
