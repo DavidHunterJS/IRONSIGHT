@@ -57,7 +57,8 @@ export default function NewsFeed() {
               const label = item.publisher || item.source;
               // Other outlets carrying the same story. Corroboration, so it is
               // shown rather than silently collapsed.
-              const alsoRan = item.publishers ? item.publishers.length - 1 : 0;
+              const outlets = item.publishers?.length ?? 0;
+              const alsoRan = outlets > 0 ? outlets - 1 : 0;
               const Wrapper = href ? 'a' : 'div';
               return (
                 <Wrapper
@@ -84,7 +85,13 @@ export default function NewsFeed() {
                       {timeAgo(item.pubDate)}
                       {alsoRan > 0 && (
                         <span title={item.publishers?.join(', ')}>
-                          {' · '}{(item.publishers?.length ?? 0)} sources
+                          {' · '}
+                          {/* Only worth distinguishing when they differ: fewer
+                              reports than outlets means one wire story was
+                              picked up, not several outlets corroborating. */}
+                          {item.reports && item.reports < outlets
+                            ? `${item.reports} ${item.reports === 1 ? 'report' : 'reports'} · ${outlets} outlets`
+                            : `${outlets} sources`}
                         </span>
                       )}
                     </span>

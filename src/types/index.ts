@@ -15,6 +15,9 @@ export interface NewsItem {
   related?: NewsItem[];
   // Distinct outlets across this item and its related ones, alphabetical.
   publishers?: string[];
+  // Distinct pieces of copy among them. Fewer than `publishers` means a wire
+  // story was picked up rather than independently reported.
+  reports?: number;
 }
 
 export interface OilPrice {
