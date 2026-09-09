@@ -12,7 +12,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Clustering
 
-- [ ] **Clustering thresholds are tuned on one day of data.** `SIMILARITY_THRESHOLD` (0.45) and `WINDOW_MS` (48h) in `src/lib/cluster.ts` were measured against a single snapshot of all six theaters: 0.45 admitted every genuine pair and blocked all six false ones, and the window curve was flat from 24h to 72h. Worth re-measuring once there is more data. If duplicates start surviving that ought to merge, the threshold is the dial - but real mistakes appeared at 0.30-0.40 (two different Russian strikes sharing their casualty phrasing), so do not go below ~0.42 without re-measuring first.
+- [ ] **Clustering thresholds still rest on one day of data.** Re-measured 2026-09-09 against the fixed tokenizer: `SIMILARITY_THRESHOLD` moved 0.45 -> 0.42, and a separate `SAME_OUTLET_THRESHOLD` (0.55) was added because one outlet against itself at ~0.43 is usually the next instalment of a series, not the same piece twice. Both are floors rather than dials now, and the code carries the measurements. Below 0.42 the same-story and different-story pairs overlap (0.417 holds both), so lowering it starts hiding events; the margin is 0.003. Worth re-running the measurement once there is more than a single snapshot - the method is in #26.
 
 ### Feed health
 
@@ -44,3 +44,5 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Retry the link checker's network failures so transient resets stop reading as breakage~~ ✅ done 2026-09-09 (#21)
 - [x] ~~Show the outlet that wrote an aggregated story, not the aggregator~~ ✅ done 2026-09-09 (#22)
 - [x] ~~Duplicate-story clustering, with a corroboration count~~ ✅ done 2026-09-09 (#23)
+- [x] ~~Distinguish a syndicated wire pickup from independent corroboration~~ ✅ done 2026-09-09 (#25)
+- [x] ~~Re-measure the clustering threshold against the fixed tokenizer~~ ✅ done 2026-09-09 (#26)
