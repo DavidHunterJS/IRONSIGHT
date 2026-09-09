@@ -37,6 +37,22 @@ describe('titleSimilarity', () => {
     expect(titleSimilarity(a, b)).toBe(titleSimilarity(b, a));
   });
 
+  it('matches a quoted word to its unquoted form', () => {
+    // Headlines quote constantly. Treating "'immediately'" and 'immediately'
+    // as different words depressed similarity for any quoted headline, which
+    // pushed genuine duplicates below the merge threshold.
+    expect(titleSimilarity(
+      'Trump says the war will end immediately',
+      "Trump says the war will end 'immediately'",
+    )).toBe(1);
+  });
+
+  it('keeps a word with an internal apostrophe whole', () => {
+    // Trimming must not reach inside the word.
+    expect(titleSimilarity("Iran's nuclear site expands", 'Iran nuclear site expands')).toBeLessThan(1);
+    expect(titleSimilarity("Iran's nuclear site expands", "Iran's nuclear site expands")).toBe(1);
+  });
+
   it('survives a title with nothing but filler', () => {
     expect(titleSimilarity('', 'North Korea fires missile')).toBe(0);
     expect(titleSimilarity('at the of', 'in on to')).toBe(0);
@@ -153,6 +169,65 @@ describe('clusterStories', () => {
     const clusters = clusterStories(items);
     expect(clusters).toHaveLength(3);
     expect(clusters.every(k => k.related.length === 0)).toBe(true);
+  });
+
+  it('counts one wire story picked up by many papers as a single report', () => {
+    // Seven CNHI papers ran identical AP copy under one headline while Anadolu
+    // wrote its own. Eight outlets, two reports — calling it eight sources
+    // overstates corroboration exactly where corroboration is the point.
+    const wire = 'War of words between China and Philippines over South China Sea claims';
+    const clusters = clusterStories([
+      item('China, Philippines exchange sharp words about South China Sea', 'Anadolu Ajansı', '2026-09-09T10:00:00Z'),
+      item(wire, 'The Seattle Times', '2026-09-09T10:10:00Z'),
+      item(wire, 'Washington Times', '2026-09-09T10:20:00Z'),
+      item(wire, 'Oskaloosa Herald', '2026-09-09T10:30:00Z'),
+      item(wire, 'Ottumwa Courier', '2026-09-09T10:40:00Z'),
+      item(wire, 'Temple Daily', '2026-09-09T10:50:00Z'),
+      item(wire, 'Goshen News', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].publishers).toHaveLength(7);
+    expect(clusters[0].reports).toBe(2);
+  });
+
+  it('sees through a lightly edited wire headline', () => {
+    // One AP story, four outlets, three spellings. Exact matching would call
+    // this three reports; it is one.
+    const clusters = clusterStories([
+      item('Zelenskyy urges more international pressure on Russia for civilian deaths', 'Boston Herald', '2026-09-09T10:00:00Z'),
+      item('Zelenskyy urges more international pressure on Russia for civilian deaths', 'Audacy', '2026-09-09T10:10:00Z'),
+      item('Zelensky urges more international pressure on Russia for civilian deaths', 'Los Angeles Times', '2026-09-09T10:20:00Z'),
+    ]);
+    expect(clusters[0].publishers).toHaveLength(3);
+    expect(clusters[0].reports).toBe(1);
+  });
+
+  it('does not call independent coverage a wire pickup', () => {
+    // Two Israeli outlets on the same Trump remark, 0.64 similar. Different
+    // reporting of one quote, not one piece of copy — understating this would
+    // hide corroboration, which is the failure worth avoiding here.
+    const clusters = clusterStories([
+      item('Trump: The war with Iran will end immediately after the midterms', 'N12', '2026-09-09T10:00:00Z'),
+      item("Trump: Iran war will end 'immediately' after the midterm elections", 'Haaretz', '2026-09-09T10:30:00Z'),
+    ]);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].reports).toBe(2);
+  });
+
+  it('reports one per outlet when nobody shares copy', () => {
+    const clusters = clusterStories([
+      item('Russia and North Korea open the first road across their shared border', 'NPR', '2026-09-09T10:00:00Z'),
+      item('North Korea and Russia open first road bridge linking both countries', 'BBC', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(clusters[0].reports).toBe(2);
+    expect(clusters[0].publishers).toHaveLength(2);
+  });
+
+  it('counts a lone story as one report', () => {
+    const clusters = clusterStories([
+      item('Oil climbs toward $100 a barrel', 'NYT', '2026-09-09T10:00:00Z'),
+    ]);
+    expect(clusters[0].reports).toBe(1);
   });
 
   it('handles an empty feed', () => {

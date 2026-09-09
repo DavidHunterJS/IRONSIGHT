@@ -25,8 +25,16 @@ export interface Cluster<T extends Clusterable> {
   lead: T;
   /** Everything else in the cluster, newest first. */
   related: T[];
-  /** Distinct outlets, alphabetical. The corroboration count is its length. */
+  /** Distinct outlets, alphabetical. */
   publishers: string[];
+  /**
+   * How many distinct pieces of copy the cluster contains.
+   *
+   * Fewer than `publishers.length` means a wire story was picked up: eight
+   * papers running one AP report is one report, not eight corroborating
+   * outlets. Equal to it means every outlet wrote its own.
+   */
+  reports: number;
 }
 
 /**
@@ -57,9 +65,36 @@ export const SIMILARITY_THRESHOLD = 0.45;
  */
 export const WINDOW_MS = 48 * 60 * 60 * 1000;
 
+/**
+ * Above this, two headlines are the same piece of copy rather than two
+ * accounts of one event.
+ *
+ * Measured on live clusters. At 0.75 and above every pair inspected was
+ * verifiably one wire story — 'adds second destroyer' beside 'adds its 2nd
+ * naval destroyer', 'Zelenskyy' beside 'Zelensky'. At 0.56 and below every
+ * pair was independent reporting. The boundary near 0.65 is genuinely fuzzy:
+ * one pair at 0.67 is the same wire and one at 0.64 is not, so no threshold
+ * separates them cleanly.
+ *
+ * 0.70 sits in the flat part of that range — 0.65, 0.70 and 0.75 score almost
+ * every live cluster identically — and errs toward counting more reports.
+ * That is the safe direction: overstating corroboration repeats the current
+ * behaviour, while understating it hides the signal this exists to show.
+ */
+export const REPORT_SIMILARITY = 0.7;
+
 function tokenize(title: string): Set<string> {
   const words = title.toLowerCase().match(/[a-z0-9']+/g) ?? [];
-  return new Set(words.filter(w => w.length > 2 && !STOP_WORDS.has(w)));
+  return new Set(
+    words
+      // Headlines quote constantly, and a straight quote is the same character
+      // as an apostrophe. Without trimming the edges, "'immediately'" and
+      // 'immediately' are different words, which quietly depressed similarity
+      // for any quoted headline and pushed real duplicates below the merge
+      // threshold. Only the edges: an internal apostrophe is part of the word.
+      .map(w => w.replace(/^'+|'+$/g, ''))
+      .filter(w => w.length > 2 && !STOP_WORDS.has(w)),
+  );
 }
 
 /**
@@ -131,11 +166,39 @@ export function clusterStories<T extends Clusterable>(
     else clusters.push({ lead: item, leadTokens: tokens, leadTime: time, related: [] });
   }
 
-  return clusters.map(({ lead, related }) => ({
-    lead,
-    related,
-    publishers: distinctPublishers([lead, ...related]),
-  }));
+  return clusters.map(({ lead, related }) => {
+    const members = [lead, ...related];
+    return {
+      lead,
+      related,
+      publishers: distinctPublishers(members),
+      reports: countReports(members),
+    };
+  });
+}
+
+/**
+ * How many distinct pieces of copy a cluster holds.
+ *
+ * Compared against each group's first headline rather than every member, for
+ * the same reason clustering does: chaining would let two genuinely different
+ * reports collapse through a third that resembles both, which would understate
+ * corroboration.
+ */
+function countReports(members: Clusterable[]): number {
+  const leads: Set<string>[] = [];
+  for (const member of members) {
+    const tokens = tokenize(member.title);
+    if (tokens.size === 0) continue;
+    const home = leads.find(lead => {
+      let shared = 0;
+      for (const w of tokens) if (lead.has(w)) shared++;
+      return shared / (tokens.size + lead.size - shared) >= REPORT_SIMILARITY;
+    });
+    if (!home) leads.push(tokens);
+  }
+  // A cluster of titles that all tokenize to nothing is still one report.
+  return Math.max(leads.length, 1);
 }
 
 /**

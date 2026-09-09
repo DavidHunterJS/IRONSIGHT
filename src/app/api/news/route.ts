@@ -175,8 +175,8 @@ async function buildNews(conflictKey: string) {
   // a time window catches those, and keeping the duplicates as `related` turns
   // them into a corroboration count rather than discarding them.
   const clusters = clusterStories(allNews);
-  const deduped: NewsItem[] = clusters.map(({ lead, related, publishers }) =>
-    related.length > 0 ? { ...lead, related, publishers } : lead,
+  const deduped: NewsItem[] = clusters.map(({ lead, related, publishers, reports }) =>
+    related.length > 0 ? { ...lead, related, publishers, reports } : lead,
   );
 
   // Sort by closest to now first (handles RSS feeds with future timestamps)
