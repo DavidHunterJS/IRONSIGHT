@@ -127,8 +127,9 @@ const TLS_CODES: Record<string, string> = {
  *   network  host does not resolve / refuses / times out    — real
  *   gone     404 or 410, the article is not there           — real
  *   blocked  publisher refuses automated clients            — inconclusive
+ *   stale    nobody has published to the feed in months     — real
  */
-type FailureKind = 'tls' | 'network' | 'gone' | 'blocked';
+type FailureKind = 'tls' | 'network' | 'gone' | 'blocked' | 'stale';
 
 interface Failure { kind: FailureKind; detail: string }
 
@@ -222,6 +223,92 @@ async function pooled<T, R>(items: T[], limit: number, worker: (item: T) => Prom
   return results;
 }
 
+/**
+ * How long a feed may go quiet before it is treated as abandoned.
+ *
+ * Measured across all 76 configured feeds: the median newest item is under
+ * three hours old, and the slowest legitimate publishers are CSIS Beyond
+ * Parallel at 21 days and Global Times' partial feed at 18. The abandoned ones
+ * start at 70 days — a Google News query too narrow to match anything recent —
+ * then CENTCOM at 216 and CNN's Middle East feed at 1415, still answering 200
+ * with headlines from 2022.
+ *
+ * 30 days sits in that gap with nine days of margin below and forty above.
+ */
+const STALE_AFTER_DAYS = 30;
+
+/**
+ * When the feed last published, or null if it does not say.
+ *
+ * Parsed through the same DOM the items are read from, deliberately. While
+ * measuring for this feature a regex tag-stripper reported two healthy feeds as
+ * dateless, because it did not understand `<![CDATA[...]]>` — which is how The
+ * Diplomat writes every one of its dates. A checker that misreads a live feed
+ * as dead is worse than no checker.
+ *
+ * Takes the newest item rather than the first, since plenty of feeds are not
+ * ordered by date, and falls back to the channel's own lastBuildDate for feeds
+ * that date the channel but not its items.
+ */
+export function newestItemDate(xml: string): Date | null {
+  let doc: Document;
+  try {
+    doc = new DOMParser().parseFromString(xml, 'text/xml');
+  } catch {
+    return null;
+  }
+
+  const read = (el: Element, tag: string): number | null => {
+    const node = el.getElementsByTagName(tag)[0];
+    const text = node?.textContent?.trim();
+    if (!text) return null;
+    const ms = new Date(text).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  };
+
+  const items = doc.getElementsByTagName('item');
+  const entries = doc.getElementsByTagName('entry');
+  const elements = items.length > 0 ? items : entries;
+
+  let newest: number | null = null;
+  for (let i = 0; i < elements.length; i++) {
+    // 'dc:date' must be spelled with its prefix: getElementsByTagName matches
+    // the qualified name, so a bare 'date' finds nothing in the Dublin Core
+    // feeds that use it — Taipei Times dates every item that way and nothing
+    // else, and would otherwise read as dateless.
+    for (const tag of ['pubDate', 'published', 'updated', 'dc:date']) {
+      const ms = read(elements[i], tag);
+      if (ms !== null) {
+        if (newest === null || ms > newest) newest = ms;
+        break;
+      }
+    }
+  }
+
+  if (newest === null) {
+    const channel = doc.getElementsByTagName('channel')[0];
+    const fallback = channel ? read(channel, 'lastBuildDate') : null;
+    if (fallback === null) return null;
+    newest = fallback;
+  }
+
+  return new Date(newest);
+}
+
+/**
+ * Whether a feed has gone quiet long enough to count as abandoned.
+ *
+ * A null date is 'cannot assess', not 'stale'. Nikkei Asia publishes 50 items
+ * with no dates anywhere and still contributes to the panel; calling it dead
+ * would be the cry-wolf failure this script is built to avoid.
+ */
+export function classifyStaleness(newest: Date | null): Failure | undefined {
+  if (!newest) return undefined;
+  const days = Math.floor((Date.now() - newest.getTime()) / 86_400_000);
+  if (days < STALE_AFTER_DAYS) return undefined;
+  return { kind: 'stale', detail: `nothing published for ${days} days` };
+}
+
 // ---------------------------------------------------------------- feed reading
 
 /**
@@ -262,6 +349,10 @@ interface FeedReport {
   // curl under every User-Agent while challenging node's fetch — whereas a 404
   // is a feed URL that has genuinely moved.
   feedError?: Failure;
+  /** Set when the feed has gone quiet long enough to look abandoned. */
+  staleness?: Failure;
+  /** True when the feed publishes no dates at all, so age cannot be judged. */
+  undated?: boolean;
   itemCount: number;
   checked: number;
   broken: { url: string; kind: FailureKind; detail: string }[];
@@ -295,8 +386,20 @@ async function checkFeed(feed: NewsFeedSource, theaters: string[], opts: Options
     return report;
   }
 
+  // A feed can answer 200 with a full, well-formed document that nobody has
+  // published to in years. CNN's Middle East feed has done exactly that since
+  // 2022, and CENTCOM's press releases were nine months old while still
+  // occupying fifteen rows of a live panel.
+  const newest = newestItemDate(xml);
+  report.staleness = classifyStaleness(newest);
+  report.undated = newest === null;
+
   const links = extractLinks(xml, feed, opts.linksPerFeed);
   report.itemCount = links.length;
+
+  // Nothing to learn from opening articles nobody has published in months, and
+  // no reason to make the requests. Staleness is the finding.
+  if (report.staleness) return report;
   if (links.length === 0) {
     // A feed that parses to nothing is broken for a reader too: the source
     // silently contributes no items and the dashboard looks merely quiet.
@@ -321,9 +424,11 @@ const c = (code: string, text: string) => (colour ? `${code}${text}${RESET}` : t
 /** A source is only "broken" if a reader would hit it; blocked is advisory. */
 const readerVisible = (r: FeedReport) => r.broken.filter(b => isReaderVisible(b.kind));
 const isBroken = (r: FeedReport) =>
-  (r.feedError !== undefined && isReaderVisible(r.feedError.kind)) || readerVisible(r).length > 0;
+  (r.feedError !== undefined && isReaderVisible(r.feedError.kind)) ||
+  r.staleness !== undefined ||
+  readerVisible(r).length > 0;
 const isAdvisory = (r: FeedReport) =>
-  !isBroken(r) && (r.feedError !== undefined || r.broken.length > 0);
+  !isBroken(r) && (r.feedError !== undefined || r.broken.length > 0 || r.undated === true);
 
 function render(reports: FeedReport[]): void {
   const broken = reports.filter(isBroken);
@@ -334,6 +439,8 @@ function render(reports: FeedReport[]): void {
     console.log(`${c(BOLD, r.name.padEnd(16))} ${c(DIM, r.url)}`);
     if (r.feedError) {
       console.log(`  ${c(RED, '✗')} feed: ${r.feedError.detail}`);
+    } else if (r.staleness) {
+      console.log(`  ${c(RED, '✗')} ${c(RED, 'STALE')} ${r.staleness.detail} — ${r.itemCount} items, links not checked`);
     } else {
       const visible = readerVisible(r);
       console.log(`  feed  ok   ${r.itemCount} items`);
@@ -352,10 +459,24 @@ function render(reports: FeedReport[]): void {
     // A TLS failure is the class of bug this script exists for: the feed looks
     // healthy from inside the app and only fails on click. Name those sources.
     const tls = broken.filter(r => r.broken.some(b => b.kind === 'tls'));
-    console.log(c(BOLD, `${broken.length} source${broken.length === 1 ? '' : 's'} serving links a reader cannot open`));
+    const stale = broken.filter(r => r.staleness);
+    console.log(c(BOLD, `${broken.length} source${broken.length === 1 ? '' : 's'} with a problem a reader would hit`));
+    if (stale.length > 0) {
+      console.log(c(RED, `  abandoned (nothing published in ${STALE_AFTER_DAYS}+ days): ${stale.map(r => r.name).join(', ')}`));
+    }
     if (tls.length > 0) {
       console.log(c(RED, `  certificate errors (browser will refuse): ${[...new Set(tls.map(r => r.name))].join(', ')}`));
     }
+  }
+
+  const undated = reports.filter(r => r.undated);
+  if (undated.length > 0) {
+    // Alive but unassessable. Reported so it is not mistaken for a clean bill
+    // of health, but never counted against the source.
+    console.log(
+      c(DIM, `${undated.length} source${undated.length === 1 ? ' publishes' : 's publish'} no dates, so age cannot be judged: ` +
+      `${[...new Set(undated.map(r => r.name))].join(', ')}`),
+    );
   }
 
   if (advisory.length > 0) {

@@ -16,7 +16,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Feed health
 
-- [ ] **The link checker cannot see a stale feed.** `npm run check:links` proves a feed responds and its articles open; it says nothing about whether anyone still publishes to it. People's Daily (`en.people.cn/rss/China.xml`) and Xinhua (`english.news.cn/rss/worldrss.xml`) both answer `200` over feeds last updated in **2011** and **2018** - a source can be frozen for a decade and pass every check. Compare the newest item date against a threshold and report anything long dead. Found while looking for a China Daily replacement (2026-09-09).
+- [ ] **Three feeds the staleness check found are still in the config.** `npm run check:links` now flags them (added 2026-09-09, #28) but nothing has been done about them: CNN's Middle East feed has published nothing for 1415 days and contributes zero rows, yet it is the sole HTTPS exemption in `config.test.ts`; CENTCOM has been quiet 216 days while still filling ~15 rows of the iran-israel panel with press releases from nine months ago; and the Google News query `Taiwan Strait PLA incursion` is too narrow to match anything from the last 69 days. Each is a one-line config change plus a judgement about whether to replace or drop.
 - [ ] **Re-check the theaters that lean on one source.** taiwan-china now runs without a second Chinese state outlet after China Daily was dropped; Global Times is the only one left. Worth a look at whether other theaters have a similarly thin slot.
 
 ### Backlog (from the original brief)
@@ -46,3 +46,5 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Duplicate-story clustering, with a corroboration count~~ ✅ done 2026-09-09 (#23)
 - [x] ~~Distinguish a syndicated wire pickup from independent corroboration~~ ✅ done 2026-09-09 (#25)
 - [x] ~~Re-measure the clustering threshold against the fixed tokenizer~~ ✅ done 2026-09-09 (#26)
+- [x] ~~Mark who owns a source, rather than rating how much to trust it~~ ✅ done 2026-09-09 (#27)
+- [x] ~~Flag feeds nobody publishes to any more~~ ✅ done 2026-09-09 (#28)

@@ -174,8 +174,14 @@ moved to a host whose certificate was issued for a different domain and had
 expired two years earlier. The feed still parsed, headlines still rendered, and
 nothing looked wrong until a reader clicked one and hit a browser TLS warning.
 
+It also reports feeds nobody publishes to any more. A feed can answer `200`
+with a complete, well-formed document and still be abandoned: CNN's Middle East
+feed has done that since 2022, and CENTCOM's press releases were nine months
+old while still filling rows in a live panel. Anything quiet for 30 days is
+flagged — the slowest legitimate publishers here run about three weeks.
+
 So it reports only what a reader would actually hit — certificate errors, dead
-hosts, 404s. Publishers that refuse automated clients but serve browsers fine
+hosts, 404s, abandoned feeds. Publishers that refuse automated clients but serve browsers fine
 (NYT, WSJ, CENTCOM among them) are listed separately and do not fail the run,
 because a check that cries wolf is a check nobody runs. Exit status is 1 when a
 source is serving links a reader cannot open.
