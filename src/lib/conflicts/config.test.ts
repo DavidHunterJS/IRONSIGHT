@@ -57,6 +57,15 @@ describe.each(keys)('theater: %s', (key) => {
     }
   });
 
+  // A feed whose name has no entry in sourceColors still renders — NewsFeed
+  // falls back to a grey badge — so adding or renaming a source silently drops
+  // its colour with nothing to notice.
+  it('colours every news source it lists', () => {
+    for (const feed of server.newsFeeds) {
+      expect(client.sourceColors[feed.name], `no colour for '${feed.name}'`).toBeDefined();
+    }
+  });
+
   it('has in-range geocode tables', () => {
     for (const [name, [lat, lon]] of Object.entries(client.strikeLocations)) {
       expect(isLat(lat), `${name} lat`).toBe(true);

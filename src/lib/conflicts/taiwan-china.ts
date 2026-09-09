@@ -172,7 +172,6 @@ export const taiwanChina: ConflictConfig = {
       'Taipei Times': '#4fb0d8',
       'SCMP': '#ffaa44',
       'Global Times': '#ff6666',
-      'China Daily': '#dd6666',
       'Nikkei Asia': '#88ddaa',
       'Japan Times': '#dd88ff',
       'USNI': '#ffd500',
@@ -294,7 +293,14 @@ export const taiwanChina: ConflictConfig = {
       { url: 'https://www.rfa.org/english/rss2.xml', name: 'RFA' },
       // Chinese state media — useful as a state-narrative counterpoint
       { url: 'https://www.globaltimes.cn/rss/outbrain.xml', name: 'Global Times' },
-      { url: 'https://www.chinadaily.com.cn/rss/china_rss.xml', name: 'China Daily' },
+      // China Daily was here until it discontinued RSS: every /rss/ path 404s
+      // and the homepage no longer references a feed. Dropped rather than
+      // replaced. CGTN is the obvious substitute and publishes actively, but
+      // nothing in the first 15 items of either its china or world section
+      // matches this theater's relevance keywords — it would fetch cleanly and
+      // contribute nothing, which is what the dead feed was already doing.
+      // People's Daily and Xinhua still answer 200 over feeds abandoned in 2011
+      // and 2018. Global Times remains the state-narrative counterpoint.
       // Wires
       { url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', name: 'BBC' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/AsiaPacific.xml', name: 'NYT' },
