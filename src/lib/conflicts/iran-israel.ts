@@ -274,18 +274,26 @@ export const iranIsrael: ConflictConfig = {
       { url: 'https://www.haaretz.com/srv/haaretz-latest-headlines', name: 'Haaretz', unfiltered: true },
       { url: 'https://www.haaretz.com/srv/middle-east-news-rss', name: 'Haaretz', unfiltered: true },
       { url: 'https://www.dropsitenews.com/feed', name: 'Drop Site' },
-      // Fetched over plain HTTP deliberately. PressTV serves a complete, in-date
-      // chain, but it anchors to "Actalis TLS Server RSA Root CA 2025", which is
-      // not in the Mozilla root program — so Node rejects it even against a
-      // current CA bundle, and https here fails outright. The content is fine
-      // (107 items). Browsers may show the site without warning because other
-      // root stores trust that CA; ours does not. Revisit if Mozilla adds it.
+      // PressTV moved off presstv.ir, which now 302s here. The old host's
+      // Actalis-anchored chain is no longer in play, so this is plain https.
+      //
+      // The catch is that the feed publishes its article links on the bare
+      // apex, and https://presstv.co.uk serves a certificate for CN=presstv.ir
+      // that expired in December 2024 — every browser refuses it. The www host
+      // has a valid Let's Encrypt cert and serves the same articles, so item
+      // links are rewritten onto it.
+      //
       // One feed, not three. rss.xml is the superset (107 items, 88 unique
       // titles); rss-101 and rss-102 carry 10 unique titles each, 6 of which
       // rss.xml already has. Because PressTV items have no date and inherit the
       // channel timestamp, all three tied at the top of the recency sort and
       // took 25 of 100 slots. One feed caps it at the route's 15-item limit.
-      { url: 'http://www.presstv.ir/rss.xml', name: 'PressTV', unfiltered: true },
+      {
+        url: 'https://www.presstv.co.uk/rss.xml',
+        name: 'PressTV',
+        unfiltered: true,
+        rewriteLinkHost: { from: 'presstv.co.uk', to: 'www.presstv.co.uk' },
+      },
     ],
     newsRelevanceKeywords: /iran|israel|idf|irgc|hezbollah|hamas|houthi|lebanon|gaza|tehran|tel\s?aviv|jerusalem|yemen|iraq|syria|gulf|hormuz|red\s?sea|missile|strike|interception|nuclear|sanction|centcom|pentagon|middle\s?east|west\s?bank|golan|sinai|negev|dimona|natanz|isfahan|khamenei|netanyahu|nasrallah|raisi|ayatollah|mossad|shin\s?bet|quds|basij|proxy|ceasefire|escalat|retaliat|iron\s?dome|arrow|david.s\s?sling|patriot|drone|uav|saudi|emirates|uae|bahrain|qatar|kuwait|oman|gcc|opec/i,
 

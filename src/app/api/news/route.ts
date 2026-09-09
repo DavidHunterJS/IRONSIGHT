@@ -1,4 +1,4 @@
-import { parseXML, getTextContent } from '@/lib/fetcher';
+import { parseXML, getTextContent, rewriteLinkHost } from '@/lib/fetcher';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
@@ -6,6 +6,7 @@ import { sanitizeText, sanitizeUrl } from '@/lib/security/sanitize';
 import { cached, cacheKey } from '@/lib/cache';
 import { CACHE_TTL, UPSTREAM } from '@/lib/config';
 import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
+import type { NewsFeedSource } from '@/lib/conflicts';
 import type { NewsItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,8 @@ const ROUTE_BUDGET_MS = 12_000;
  * Throws on failure so Promise.allSettled can count how many sources answered —
  * that count is what drives the degraded/error state shown in the UI.
  */
-async function fetchRSS(feedUrl: string, source: string): Promise<NewsItem[]> {
+async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
+  const { url: feedUrl, name: source } = feed;
   const text = await fetchUpstreamText(feedUrl, {
     timeout: UPSTREAM.timeoutMs,
     // RSS documents are small; a multi-MB "feed" is a misconfigured endpoint.
@@ -68,7 +70,8 @@ async function fetchRSS(feedUrl: string, source: string): Promise<NewsItem[]> {
       const linkEl = item.getElementsByTagName('link')[0];
       if (linkEl) rawLink = linkEl.getAttribute('href') || '';
     }
-    const link = sanitizeUrl(rawLink) ?? '';
+    let link = sanitizeUrl(rawLink) ?? '';
+    if (link && feed.rewriteLinkHost) link = rewriteLinkHost(link, feed.rewriteLinkHost);
 
     const pubDate =
       sanitizeText(
@@ -125,7 +128,7 @@ async function buildNews(conflictKey: string) {
   };
 
   const results = await Promise.allSettled(
-    feeds.map(feed => withBudget(fetchRSS(feed.url, feed.name), ROUTE_BUDGET_MS)),
+    feeds.map(feed => withBudget(fetchRSS(feed), ROUTE_BUDGET_MS)),
   );
 
   const health = statusFromSettled(results);
