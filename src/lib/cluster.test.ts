@@ -89,6 +89,56 @@ describe('clusterStories', () => {
     expect(clusters).toHaveLength(2);
   });
 
+  it('merges the same event under differently worded headlines', () => {
+    // 0.429 — below the original 0.45 threshold, so these showed as two rows
+    // until it was re-measured against the fixed tokenizer.
+    const bridge = clusterStories([
+      item('North Korea and Russia open first road bridge linking both countries', 'BBC', '2026-09-09T10:00:00Z'),
+      item('Russia, North Korea open their first car bridge in ceremony: state media', 'NK News', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(bridge).toHaveLength(1);
+
+    const missile = clusterStories([
+      item('North Korea launches another missile toward sea ahead of US-South Korea drills', 'AP', '2026-09-09T10:00:00Z'),
+      item('North Korea fires missile ahead of major US-South Korea drills', 'Reuters', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(missile).toHaveLength(1);
+  });
+
+  it('does not merge two instalments of one outlet’s series', () => {
+    // 0.429 — the same score as genuine cross-outlet duplicates, so the story
+    // threshold alone cannot separate them. These are two different articles
+    // in 38 North's 'Beyond Pyongyang' series, published days apart, so the
+    // time window does not catch them either.
+    const clusters = clusterStories([
+      item('Beyond Pyongyang: Mobile Networks, the Internet, and Broadcasting', '38 North', '2026-09-09T10:00:00Z'),
+      item('Beyond Pyongyang: Transportation Networks', '38 North', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(clusters).toHaveLength(2);
+  });
+
+  it('still merges an outlet republishing its own article', () => {
+    // The legitimate same-outlet case: one piece arriving through two feeds,
+    // or with a section prefix attached. These sit at 0.60 and above.
+    const clusters = clusterStories([
+      item('OPINION: Russian Sabotage Ops in Europe', 'Kyiv Post', '2026-09-09T10:00:00Z'),
+      item('Russian Sabotage Ops in Europe', 'Kyiv Post', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(clusters).toHaveLength(1);
+  });
+
+  it('holds the line where the two classes overlap', () => {
+    // 0.417, and the highest-scoring pair that is NOT one story: Pakistan's
+    // treaty position and Pakistan's message of support are different reports.
+    // Genuine duplicates also occur at 0.417, so no threshold separates them —
+    // this is the floor, not a dial. Lowering past it starts hiding stories.
+    const clusters = clusterStories([
+      item('Houthi attacks on Saudi Arabia could activate defence pact, Pakistan says', 'Al Jazeera', '2026-09-09T10:00:00Z'),
+      item('Pakistan pledges ‘unwavering solidarity’ with Saudi Arabia after Houthi attacks', 'Arab News', '2026-09-09T11:00:00Z'),
+    ]);
+    expect(clusters).toHaveLength(2);
+  });
+
   it('does not chain unrelated stories through a middle one', () => {
     // A~B is 0.63 and B~C is 0.46, but A~C is only 0.18. Single-link clustering
     // would put all three together and quietly turn a conservative threshold

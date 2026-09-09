@@ -49,8 +49,43 @@ const STOP_WORDS = new Set([
   'that', 'not', 'but',
 ]);
 
-/** Similarity at or above this counts as the same story. */
-export const SIMILARITY_THRESHOLD = 0.45;
+/**
+ * Similarity at or above this counts as the same story.
+ *
+ * Re-measured against 566 live items across all six theaters after a tokenizer
+ * fix changed what these numbers mean. Hand-classifying every pair in the
+ * decision zone put same-story pairs at 0.400, 0.417, 0.429, 0.455, 0.462 and
+ * 0.500, and different-story pairs at 0.385 and 0.417.
+ *
+ * 0.42 is the lowest setting that admits no different-story pair: it clears
+ * 0.417 and captures the 0.429 group, which the previous 0.45 was missing —
+ * one bridge opening and one missile launch each showing as two rows.
+ *
+ * It does not go lower because 0.417 holds pairs of both kinds, so nothing
+ * below it separates them. That makes this a floor rather than a dial: the
+ * next step down starts merging distinct events, and a hidden event costs far
+ * more here than a repeated headline. The margin above 0.417 is only 0.003, so
+ * re-measure before moving it rather than nudging.
+ */
+export const SIMILARITY_THRESHOLD = 0.42;
+
+/**
+ * The bar two headlines from the *same* outlet must clear.
+ *
+ * Two outlets covering one event write different headlines, which is why 0.42
+ * works for them. One outlet republishing its own piece writes the same
+ * headline again — through a second feed, or with a section prefix attached —
+ * so the legitimate same-outlet case scores high: measured live, every one sat
+ * at 0.60 or above and most at 1.00.
+ *
+ * Below that, a same-outlet pair is usually two instalments of a series.
+ * 38 North's 'Beyond Pyongyang: Mobile Networks' and 'Beyond Pyongyang:
+ * Transportation Networks' score 0.429 — the same as genuine cross-outlet
+ * duplicates, so the story threshold alone cannot tell them apart, and they run
+ * days apart so the window does not either. This is the near-in-time version of
+ * the recurring-report problem, and it needs the outlet to separate it.
+ */
+export const SAME_OUTLET_THRESHOLD = 0.55;
 
 /**
  * How far apart two reports of one event can be published.
@@ -136,20 +171,29 @@ function timeOf(item: Clusterable): number | null {
  */
 export function clusterStories<T extends Clusterable>(
   items: T[],
-  options: { threshold?: number; windowMs?: number } = {},
+  options: { threshold?: number; sameOutletThreshold?: number; windowMs?: number } = {},
 ): Cluster<T>[] {
   const threshold = options.threshold ?? SIMILARITY_THRESHOLD;
+  const sameOutletThreshold = options.sameOutletThreshold ?? SAME_OUTLET_THRESHOLD;
   const windowMs = options.windowMs ?? WINDOW_MS;
 
   // Newest first, so a cluster's lead is its most recent item and the output
   // order does not depend on the order feeds happened to answer in.
   const ordered = [...items].sort((a, b) => (timeOf(b) ?? 0) - (timeOf(a) ?? 0));
 
-  const clusters: { lead: T; leadTokens: Set<string>; leadTime: number | null; related: T[] }[] = [];
+  const clusters: {
+    lead: T;
+    leadTokens: Set<string>;
+    leadTime: number | null;
+    leadOutlet: string;
+    related: T[];
+  }[] = [];
 
   for (const item of ordered) {
     const tokens = tokenize(item.title);
     const time = timeOf(item);
+
+    const outlet = canonicalName(item.publisher || item.source);
 
     const home = time === null
       ? undefined
@@ -159,11 +203,15 @@ export function clusterStories<T extends Clusterable>(
           if (tokens.size === 0 || c.leadTokens.size === 0) return false;
           let shared = 0;
           for (const w of tokens) if (c.leadTokens.has(w)) shared++;
-          return shared / (tokens.size + c.leadTokens.size - shared) >= threshold;
+          const score = shared / (tokens.size + c.leadTokens.size - shared);
+          // One outlet against itself has to clear a higher bar: at this level
+          // it is more often the next instalment of a series than the same
+          // piece arriving twice.
+          return score >= (c.leadOutlet === outlet ? sameOutletThreshold : threshold);
         });
 
     if (home) home.related.push(item);
-    else clusters.push({ lead: item, leadTokens: tokens, leadTime: time, related: [] });
+    else clusters.push({ lead: item, leadTokens: tokens, leadTime: time, leadOutlet: outlet, related: [] });
   }
 
   return clusters.map(({ lead, related }) => {
