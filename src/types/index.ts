@@ -10,6 +10,11 @@ export interface NewsItem {
   publisher?: string;
   pubDate: string;
   category?: string;
+  // Other outlets carrying the same story, newest first. Present only when a
+  // story was matched with others; the panel shows the count as corroboration.
+  related?: NewsItem[];
+  // Distinct outlets across this item and its related ones, alphabetical.
+  publishers?: string[];
 }
 
 export interface OilPrice {
