@@ -2,7 +2,7 @@
   "name": "watchfloor",
   "version": "0.2.0",
   "private": true,
-  "description": "IRONSIGHT — real-time OSINT command center aggregating free, public open-source feeds across two conflict theaters (Iran/Israel and Russia/Ukraine). All data belongs to its respective providers; this project claims no ownership.",
+  "description": "IRONSIGHT \u2014 real-time OSINT command center aggregating free, public open-source feeds across two conflict theaters (Iran/Israel and Russia/Ukraine). All data belongs to its respective providers; this project claims no ownership.",
   "keywords": [
     "osint",
     "dashboard",
@@ -25,11 +25,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:links": "node --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/check-feed-links.mts",
     "check": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {

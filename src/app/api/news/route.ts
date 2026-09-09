@@ -1,4 +1,5 @@
-import { parseXML, getTextContent, rewriteLinkHost } from '@/lib/fetcher';
+import { parseXML, getTextContent } from '@/lib/fetcher';
+import { rewriteLinkHost } from '@/lib/links';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
