@@ -14,14 +14,13 @@ const keys = ALL_CONFLICT_KEYS as ConflictKey[];
 // dropped by the route without an error, so the panel just quietly loses a source.
 const CHANNEL_RE = /^[A-Za-z0-9_]{3,64}$/;
 
-// Feeds with no HTTPS endpoint at all. rss.cnn.com refuses TLS connections, so
-// this cannot be fixed by rewriting the scheme — the choice is an unencrypted
-// fetch or dropping the source. Listed explicitly so the exception stays visible
-// and the invariant keeps applying to every other feed.
-const HTTP_ONLY_FEEDS = new Set<string>([
-  // No HTTPS endpoint at all; rss.cnn.com refuses TLS connections.
-  'http://rss.cnn.com/rss/edition_meast.rss',
-]);
+// Feeds with no HTTPS endpoint at all. Empty, and worth keeping that way: every
+// configured feed is now fetched over TLS. The list held one entry, CNN's
+// Middle East feed, which was carried over plain HTTP because rss.cnn.com
+// refuses TLS connections — then turned out to have published nothing in 1415
+// days and was dropped. An exception belongs here rather than in a weakened
+// invariant, so a future one stays visible.
+const HTTP_ONLY_FEEDS = new Set<string>([]);
 
 function isLat(n: number) { return Number.isFinite(n) && n >= -90 && n <= 90; }
 function isLon(n: number) { return Number.isFinite(n) && n >= -180 && n <= 180; }

@@ -259,7 +259,12 @@ export const iranIsrael: ConflictConfig = {
       { url: 'https://rcs.mako.co.il/rss/news-military.xml', name: 'N12', unfiltered: true },
       { url: 'https://rss.walla.co.il/feed/22', name: 'Walla', unfiltered: true },
       { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', name: 'The National' },
-      { url: 'http://rss.cnn.com/rss/edition_meast.rss', name: 'CNN' },
+      // CNN's Middle East feed was here. It answered 200 with a well-formed
+      // document for years after it stopped publishing — the link checker
+      // measured its newest item at 1415 days old, and it was contributing
+      // nothing to the panel. Dropped rather than replaced: CNN coverage still
+      // reaches this theater through the Google News queries below, which is
+      // why 'CNN' keeps its entry in sourceColors.
       { url: 'https://moxie.foxnews.com/google-publisher/world.xml', name: 'Fox News' },
       { url: 'https://feeds.content.dowjones.io/public/rss/RSSWorldNews', name: 'WSJ' },
       { url: 'https://news.google.com/rss/search?q=Iran+Israel+war+military&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
