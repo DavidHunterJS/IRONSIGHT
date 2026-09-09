@@ -56,6 +56,12 @@ export interface NewsFeedSource {
   // If true, items from this source bypass the relevance keyword filter
   // (used for outlets that are inherently on-topic for this conflict).
   unfiltered?: boolean;
+  // Some outlets publish item links on a host whose certificate a browser
+  // rejects, while an equivalent host serves the same article fine. Without
+  // this the feed loads normally and every click dead-ends on a TLS
+  // interstitial. Matches the hostname exactly, so links this feed makes to
+  // anywhere else are left alone.
+  rewriteLinkHost?: { from: string; to: string };
 }
 
 export interface CountryQuery {

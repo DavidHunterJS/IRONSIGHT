@@ -21,10 +21,6 @@ const CHANNEL_RE = /^[A-Za-z0-9_]{3,64}$/;
 const HTTP_ONLY_FEEDS = new Set<string>([
   // No HTTPS endpoint at all; rss.cnn.com refuses TLS connections.
   'http://rss.cnn.com/rss/edition_meast.rss',
-  // Serves valid HTTPS, but anchored to an Actalis 2025 root that is not in the
-  // Mozilla program, so Node cannot verify it. Plain HTTP is the working route
-  // until that root is added.
-  'http://www.presstv.ir/rss.xml',
 ]);
 
 function isLat(n: number) { return Number.isFinite(n) && n >= -90 && n <= 90; }
