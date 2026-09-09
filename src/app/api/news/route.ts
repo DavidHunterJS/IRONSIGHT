@@ -1,6 +1,7 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
 import { extractPublisher } from '@/lib/publisher';
+import { clusterStories } from '@/lib/cluster';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
@@ -167,14 +168,16 @@ async function buildNews(conflictKey: string) {
     });
   }
 
-  // Deduplicate by title similarity (exact match after lowercasing)
-  const seen = new Set<string>();
-  const deduped = allNews.filter(item => {
-    const key = item.title.toLowerCase().trim().substring(0, 60);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // Group reports of one story. This replaces an exact-match dedupe on the
+  // first 60 characters of the title, which only ever caught verbatim
+  // syndication — 'Israel strikes Beirut suburb' and 'IDF hits Hezbollah
+  // target in Beirut' survived it as two rows. Matching on word overlap within
+  // a time window catches those, and keeping the duplicates as `related` turns
+  // them into a corroboration count rather than discarding them.
+  const clusters = clusterStories(allNews);
+  const deduped: NewsItem[] = clusters.map(({ lead, related, publishers }) =>
+    related.length > 0 ? { ...lead, related, publishers } : lead,
+  );
 
   // Sort by closest to now first (handles RSS feeds with future timestamps)
   const now = Date.now();

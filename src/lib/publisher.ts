@@ -56,7 +56,10 @@ const ALIASES: Record<string, string> = {
   'taipeitimes.com': 'Taipei Times',
   'focustaiwan.tw': 'Focus Taiwan',
   'rfa.org': 'RFA',
-  'kyivindependent.com': 'Kyiv Indep',
+  // Matches the configured feed name exactly. Shortening it to 'Kyiv Indep'
+  // made the same outlet count as two sources when both spellings met in a
+  // cluster.
+  'kyivindependent.com': 'Kyiv Independent',
   'pravda.com.ua': 'Pravda UA',
   'defensenews.com': 'Defense News',
   'breakingdefense.com': 'Breaking Def',

@@ -55,6 +55,9 @@ export default function NewsFeed() {
               const href = sanitizeUrl(item.link);
               // The outlet that wrote it, falling back to the feed it came from.
               const label = item.publisher || item.source;
+              // Other outlets carrying the same story. Corroboration, so it is
+              // shown rather than silently collapsed.
+              const alsoRan = item.publishers ? item.publishers.length - 1 : 0;
               const Wrapper = href ? 'a' : 'div';
               return (
                 <Wrapper
@@ -71,7 +74,7 @@ export default function NewsFeed() {
                       color: '#fff',
                     }}
                   >
-                    {label}
+                    {label}{alsoRan > 0 ? ` +${alsoRan}` : ''}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] leading-tight text-[var(--text-primary)] truncate">
@@ -79,6 +82,11 @@ export default function NewsFeed() {
                     </p>
                     <span className="text-[9px] text-[var(--text-secondary)]">
                       {timeAgo(item.pubDate)}
+                      {alsoRan > 0 && (
+                        <span title={item.publishers?.join(', ')}>
+                          {' · '}{(item.publishers?.length ?? 0)} sources
+                        </span>
+                      )}
                     </span>
                   </div>
                 </Wrapper>
