@@ -154,6 +154,36 @@ npm run build
 npm start
 ```
 
+### Checking the feeds
+
+`npm run check` runs the typecheck, lint and unit tests. Those never touch the
+network, so they cannot tell you that a source has quietly broken.
+
+`npm run check:links` does. It reads every feed, resolves item links exactly as
+the news route does, and opens them:
+
+```bash
+npm run check:links                          # every theater
+npm run check:links -- --conflict=red-sea    # one theater
+npm run check:links -- --links=3             # fewer links per feed, faster
+npm run check:links -- --json                # machine-readable
+```
+
+It exists because of a failure that is invisible from inside the app: PressTV
+moved to a host whose certificate was issued for a different domain and had
+expired two years earlier. The feed still parsed, headlines still rendered, and
+nothing looked wrong until a reader clicked one and hit a browser TLS warning.
+
+So it reports only what a reader would actually hit — certificate errors, dead
+hosts, 404s. Publishers that refuse automated clients but serve browsers fine
+(NYT, WSJ, CENTCOM among them) are listed separately and do not fail the run,
+because a check that cries wolf is a check nobody runs. Exit status is 1 when a
+source is serving links a reader cannot open.
+
+It is deliberately not part of `npm run check`: it makes a few hundred live
+requests to third-party servers, which is neither fast nor appropriate on every
+commit.
+
 ## Run with Docker
 
 Prefer to run it isolated from your host (no local Node install, sandboxed dependencies and network)? A multi-stage `Dockerfile` produces a slim (~215 MB) standalone image that runs as a non-root user. No API keys or environment variables are needed.

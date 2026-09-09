@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { rewriteLinkHost } from './fetcher';
+import { rewriteLinkHost } from './links';
 
 // PressTV's feed lists articles on the bare apex, which serves a certificate
 // for a different domain that expired in December 2024. The www host carries a
