@@ -1,6 +1,7 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
 import { extractPublisher } from '@/lib/publisher';
+import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
@@ -93,7 +94,12 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
     // filter's unfiltered allowlist is keyed on it, and overwriting it here
     // would quietly drop most aggregated items.
     let publisher: string | undefined;
+    // Known from our own fetch rather than inferred: this feed is an
+    // aggregator, so anything arriving through it was picked up rather than
+    // published by the outlet whose name we just recovered.
+    let viaAggregator = false;
     if (source === 'Google News') {
+      viaAggregator = true;
       const sourceEl = item.getElementsByTagName('source')[0];
       publisher = extractPublisher({
         sourceText: sourceEl?.textContent ?? undefined,
@@ -109,6 +115,8 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
       link,
       source,
       publisher: publisher ? sanitizeText(publisher, { maxLength: 40 }) : undefined,
+      stateMedia: provenanceOf(publisher ?? source)?.state,
+      viaAggregator: viaAggregator || undefined,
       pubDate,
       category: sanitizeText(getTextContent(item, 'category'), { maxLength: 80 }) || undefined,
     });

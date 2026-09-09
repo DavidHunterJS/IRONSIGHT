@@ -18,6 +18,11 @@ export interface NewsItem {
   // Distinct pieces of copy among them. Fewer than `publishers` means a wire
   // story was picked up rather than independently reported.
   reports?: number;
+  // The state that owns this outlet, where that is a matter of public record.
+  // Absent means nothing is recorded — not that the outlet is independent.
+  stateMedia?: string;
+  // Reached us through a news aggregator rather than the outlet's own feed.
+  viaAggregator?: boolean;
 }
 
 export interface OilPrice {

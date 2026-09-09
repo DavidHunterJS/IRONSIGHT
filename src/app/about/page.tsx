@@ -51,6 +51,15 @@ const SOURCE_GROUPS: { label: string; items: string[] }[] = [
     ],
   },
   {
+    label: 'Source marks in the feed',
+    items: [
+      '⚑ state — the outlet is owned or editorially controlled by a government, by its own description or its government\u2019s. A matter of public record, not an assessment of accuracy.',
+      'via aggregator — the item reached us through a news aggregator rather than the outlet\u2019s own feed.',
+      'No mark means nothing has been recorded about that outlet. It is not a statement that the outlet is independent, and most sources here carry no mark.',
+      'Publicly funded broadcasters with editorial independence are deliberately not marked as state media; treating them the same as a government mouthpiece would mislead rather than inform.',
+    ],
+  },
+  {
     label: 'Cartography',
     items: [
       'Esri Dark Gray Canvas basemap tiles (Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS user community)',

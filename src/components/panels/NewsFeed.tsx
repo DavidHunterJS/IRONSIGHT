@@ -82,7 +82,23 @@ export default function NewsFeed() {
                       {item.title}
                     </p>
                     <span className="text-[9px] text-[var(--text-secondary)]">
+                      {/* Ownership on the public record, not a rating. An
+                          absent mark means nothing is recorded about the
+                          outlet, not that it is independent. */}
+                      {item.stateMedia && (
+                        <span
+                          className="text-[var(--orange,#f97316)] mr-1"
+                          title={`State-owned media (${item.stateMedia})`}
+                        >
+                          ⚑ state
+                        </span>
+                      )}
                       {timeAgo(item.pubDate)}
+                      {item.viaAggregator && (
+                        <span title="Reached us through a news aggregator, not the outlet's own feed">
+                          {' · '}via aggregator
+                        </span>
+                      )}
                       {alsoRan > 0 && (
                         <span title={item.publishers?.join(', ')}>
                           {' · '}
