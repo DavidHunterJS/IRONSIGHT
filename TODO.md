@@ -16,7 +16,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Feed health
 
-- [ ] **Three feeds the staleness check found are still in the config.** `npm run check:links` now flags them (added 2026-09-09, #28) but nothing has been done about them: CNN's Middle East feed has published nothing for 1415 days and contributes zero rows, yet it is the sole HTTPS exemption in `config.test.ts`; CENTCOM has been quiet 216 days while still filling ~15 rows of the iran-israel panel with press releases from nine months ago; and the Google News query `Taiwan Strait PLA incursion` is too narrow to match anything from the last 69 days. Each is a one-line config change plus a judgement about whether to replace or drop.
+- [ ] **Two feeds the staleness check flags are still in the config.** `npm run check:links` reports them every sweep and exits 1 until they are dealt with. CENTCOM has published nothing for 216 days while still filling ~15 rows of the iran-israel panel with press releases from nine months ago — the awkward one, since an official military feed going quiet for months may be normal rather than broken. The Google News query `Taiwan Strait PLA incursion` has matched nothing in 69 days and probably wants rewording rather than dropping. (CNN was the third; removed in #29.)
 - [ ] **Re-check the theaters that lean on one source.** taiwan-china now runs without a second Chinese state outlet after China Daily was dropped; Global Times is the only one left. Worth a look at whether other theaters have a similarly thin slot.
 
 ### Backlog (from the original brief)
@@ -48,3 +48,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Re-measure the clustering threshold against the fixed tokenizer~~ ✅ done 2026-09-09 (#26)
 - [x] ~~Mark who owns a source, rather than rating how much to trust it~~ ✅ done 2026-09-09 (#27)
 - [x] ~~Flag feeds nobody publishes to any more~~ ✅ done 2026-09-09 (#28)
+- [x] ~~Remove CNN's dead Middle East feed, retiring the last HTTPS exemption~~ ✅ done 2026-09-09 (#29)
