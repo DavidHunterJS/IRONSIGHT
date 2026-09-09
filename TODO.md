@@ -8,7 +8,11 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **Duplicate-story clustering.** The six theaters share wire feeds - BBC, NYT, Al Jazeera and Reuters appear in several configs, and the Google News queries return heavy near-duplicates - so the same story arrives repeatedly in one panel. The largest signal-to-noise win left, and the concern behind most fixes in this codebase. Start with the design question (what counts as the same story?) rather than the code.
+- [ ] **A syndicated wire story counts as many sources.** Clustering counts distinct outlets, which is right for independent reporting and wrong for syndication. Live production shows `Anadolu Ajansı +6` on one South China Sea story, where Goshen News, Oskaloosa Herald, Ottumwa Courier and Temple Daily are CNHI papers all running the same AP copy - seven "sources" that are one report. The count overstates corroboration wherever a wire gets picked up, which is the case it most needs to get right. No cheap fix: telling syndication from independent reporting is harder than the matching that produced the cluster. Identical titles across outlets are a strong hint, and a byline or wire credit would be stronger if the feeds carried one. Surfaced by inspecting every cluster on the day clustering shipped (2026-09-09).
+
+### Clustering
+
+- [ ] **Clustering thresholds are tuned on one day of data.** `SIMILARITY_THRESHOLD` (0.45) and `WINDOW_MS` (48h) in `src/lib/cluster.ts` were measured against a single snapshot of all six theaters: 0.45 admitted every genuine pair and blocked all six false ones, and the window curve was flat from 24h to 72h. Worth re-measuring once there is more data. If duplicates start surviving that ought to merge, the threshold is the dial - but real mistakes appeared at 0.30-0.40 (two different Russian strikes sharing their casualty phrasing), so do not go below ~0.42 without re-measuring first.
 
 ### Feed health
 
@@ -38,3 +42,5 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Add a feed link checker that opens what readers click~~ ✅ done 2026-09-09 (#19)
 - [x] ~~Drop China Daily's dead feed and fix the ThreatClock lint error~~ ✅ done 2026-09-09 (#20)
 - [x] ~~Retry the link checker's network failures so transient resets stop reading as breakage~~ ✅ done 2026-09-09 (#21)
+- [x] ~~Show the outlet that wrote an aggregated story, not the aggregator~~ ✅ done 2026-09-09 (#22)
+- [x] ~~Duplicate-story clustering, with a corroboration count~~ ✅ done 2026-09-09 (#23)
