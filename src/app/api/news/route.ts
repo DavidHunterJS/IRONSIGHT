@@ -1,5 +1,6 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
+import { extractPublisher } from '@/lib/publisher';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
@@ -84,8 +85,20 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
 
     if (!title) continue;
 
-    // Dedupe Google News titles that include " - Source" suffix
+    // Google News files every item under one source and carries the real outlet
+    // separately — in a <source url="..."> element, with the title suffix as a
+    // fallback. Recover it for display, then strip the suffix so the headline
+    // reads cleanly. `source` deliberately stays the feed name: the relevance
+    // filter's unfiltered allowlist is keyed on it, and overwriting it here
+    // would quietly drop most aggregated items.
+    let publisher: string | undefined;
     if (source === 'Google News') {
+      const sourceEl = item.getElementsByTagName('source')[0];
+      publisher = extractPublisher({
+        sourceText: sourceEl?.textContent ?? undefined,
+        sourceUrl: sourceEl?.getAttribute('url') ?? undefined,
+        title,
+      });
       const dashIdx = title.lastIndexOf(' - ');
       if (dashIdx > 0) title = title.substring(0, dashIdx);
     }
@@ -94,6 +107,7 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
       title,
       link,
       source,
+      publisher: publisher ? sanitizeText(publisher, { maxLength: 40 }) : undefined,
       pubDate,
       category: sanitizeText(getTextContent(item, 'category'), { maxLength: 80 }) || undefined,
     });
