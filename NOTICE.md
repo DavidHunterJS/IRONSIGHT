@@ -41,5 +41,6 @@ All data displayed by this application is retrieved from third-party public
 sources and remains the property of its respective providers. No ownership is
 claimed over any aggregated content. See `/about` for the source list.
 
-Map tiles: © OpenStreetMap contributors, © CARTO.
+Map tiles: Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS user
+community (Esri Dark Gray Canvas).
 Boundary vectors: Natural Earth (public domain).

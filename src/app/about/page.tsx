@@ -53,7 +53,7 @@ const SOURCE_GROUPS: { label: string; items: string[] }[] = [
   {
     label: 'Cartography',
     items: [
-      'CARTO dark basemap tiles (© OpenStreetMap contributors, © CARTO)',
+      'Esri Dark Gray Canvas basemap tiles (Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS user community)',
       'Natural Earth public-domain boundary vectors',
     ],
   },
