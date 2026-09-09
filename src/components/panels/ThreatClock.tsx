@@ -1,20 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useConflict } from '@/lib/conflicts/context';
+import { subscribeToClock, getClockSnapshot, getClockServerSnapshot } from '@/lib/clock';
 
 export default function ThreatClock() {
   const { config } = useConflict();
   const TIME_ZONES = config.client.timeZones;
-  const [time, setTime] = useState<Date | null>(null);
+  // Null through the server render and the hydrating render, then the real
+  // time. Same placeholder as before, one render cheaper.
+  const now = useSyncExternalStore(subscribeToClock, getClockSnapshot, getClockServerSnapshot);
 
-  useEffect(() => {
-    setTime(new Date());
-    const id = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (!time) {
+  if (now === null) {
     return (
       <div className="flex items-center gap-4 px-4 py-1.5">
         <span className="text-[9px] text-[var(--text-secondary)]">Loading clocks...</span>
@@ -22,6 +19,7 @@ export default function ThreatClock() {
     );
   }
 
+  const time = new Date(now);
   const utc = time.toISOString().replace('T', ' ').substring(0, 19);
 
   return (
