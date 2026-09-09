@@ -19,6 +19,8 @@
  * a release. Feeds are read-only public endpoints; nothing here writes.
  */
 
+import { pathToFileURL } from 'node:url';
+
 import { DOMParser } from '@xmldom/xmldom';
 
 import { rewriteLinkHost } from '../src/lib/links.ts';
@@ -86,6 +88,11 @@ function parseArgs(argv: string[]): Options {
   return opts;
 }
 
+// Identify the script rather than arriving as a bare node fetch; some
+// publishers reject unlabelled clients outright, which would otherwise read as
+// a broken link.
+const USER_AGENT = 'IRONSIGHT-link-check/1.0 (+https://github.com/DavidHunterJS/IRONSIGHT)';
+
 // ---------------------------------------------------------------- diagnosis
 
 /**
@@ -128,7 +135,7 @@ interface Failure { kind: FailureKind; detail: string }
 /** A reader hits this too. `blocked` is the only kind that stays advisory. */
 const isReaderVisible = (kind: FailureKind) => kind !== 'blocked';
 
-function diagnose(err: unknown): Failure {
+export function diagnose(err: unknown): Failure {
   const cause = (err as { cause?: { code?: string; message?: string } } | undefined)?.cause;
   const code = cause?.code ?? (err as { code?: string })?.code;
   if (code && TLS_CODES[code]) return { kind: 'tls', detail: TLS_CODES[code] };
@@ -149,18 +156,43 @@ function diagnose(err: unknown): Failure {
  * else in the 4xx/5xx range is far more often a publisher turning away a client
  * that is not a browser, so it is reported but not counted against the source.
  */
-function classifyStatus(status: number): Failure {
+export function classifyStatus(status: number): Failure {
   if (status === 404 || status === 410) return { kind: 'gone', detail: `HTTP ${status} — not found` };
   return { kind: 'blocked', detail: `HTTP ${status} — refuses automated clients` };
 }
 
-async function head(url: string, timeoutMs: number): Promise<{ ok: true; status: number } | { ok: false; failure: Failure }> {
+type Attempt = { ok: true; status: number } | { ok: false; failure: Failure };
+
+/**
+ * Retry once on a network-class failure.
+ *
+ * A connection reset or a timeout is usually the network between here and the
+ * publisher, not the publisher being broken — a full sweep saw three sources
+ * fail with ECONNRESET on one run and all 77 pass on the next. Reporting that
+ * as breakage is the same cry-wolf failure the blocked/broken split exists to
+ * avoid, except worse, because it is not reproducible.
+ *
+ * Only `network` is retried. A certificate error is deterministic: the same
+ * chain fails the same way every time, so a second attempt costs a round trip
+ * and tells us nothing. HTTP statuses are not retried either — those answers
+ * came from the server, which means it is reachable and has decided.
+ */
+export async function withNetworkRetry(
+  attempt: () => Promise<Attempt>,
+  delayMs = 750,
+): Promise<Attempt> {
+  const first = await attempt();
+  if (first.ok || first.failure.kind !== 'network') return first;
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+  return attempt();
+}
+
+async function openOnce(url: string, timeoutMs: number): Promise<Attempt> {
+  // A fresh signal per attempt: an AbortSignal that has already fired stays
+  // fired, so reusing one would make every retry abort instantly.
   const signal = AbortSignal.timeout(timeoutMs);
   try {
-    // Identify the script rather than arriving as a bare node fetch; some
-    // publishers reject unlabelled clients outright, which would otherwise
-    // read as a broken link.
-    const headers = { 'User-Agent': 'IRONSIGHT-link-check/1.0 (+https://github.com/DavidHunterJS/IRONSIGHT)' };
+    const headers = { 'User-Agent': USER_AGENT };
     let res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal, headers });
     // Plenty of CDNs refuse HEAD but serve GET fine. Only a GET distinguishes
     // "this article is gone" from "this server dislikes HEAD".
@@ -173,6 +205,8 @@ async function head(url: string, timeoutMs: number): Promise<{ ok: true; status:
     return { ok: false, failure: diagnose(err) };
   }
 }
+
+const open = (url: string, timeoutMs: number) => withNetworkRetry(() => openOnce(url, timeoutMs));
 
 /** Run tasks with a fixed number in flight, so a sweep stays polite to publishers. */
 async function pooled<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -236,23 +270,28 @@ interface FeedReport {
 async function checkFeed(feed: NewsFeedSource, theaters: string[], opts: Options): Promise<FeedReport> {
   const report: FeedReport = { name: feed.name, url: feed.url, theaters, itemCount: 0, checked: 0, broken: [] };
 
-  let xml: string;
-  try {
-    const res = await fetch(feed.url, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(opts.timeoutMs),
-      headers: {
-        Accept: 'application/rss+xml, application/xml, text/xml, */*',
-        'User-Agent': 'IRONSIGHT-link-check/1.0 (+https://github.com/DavidHunterJS/IRONSIGHT)',
-      },
-    });
-    if (!res.ok) {
-      report.feedError = classifyStatus(res.status);
-      return report;
+  // Same retry as the links: a reset fetching the feed is no more meaningful
+  // than a reset fetching an article.
+  let xml = '';
+  const fetched = await withNetworkRetry(async () => {
+    try {
+      const res = await fetch(feed.url, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(opts.timeoutMs),
+        headers: {
+          Accept: 'application/rss+xml, application/xml, text/xml, */*',
+          'User-Agent': USER_AGENT,
+        },
+      });
+      if (!res.ok) return { ok: false, failure: classifyStatus(res.status) };
+      xml = await res.text();
+      return { ok: true, status: res.status };
+    } catch (err) {
+      return { ok: false, failure: diagnose(err) };
     }
-    xml = await res.text();
-  } catch (err) {
-    report.feedError = diagnose(err);
+  });
+  if (!fetched.ok) {
+    report.feedError = fetched.failure;
     return report;
   }
 
@@ -265,7 +304,7 @@ async function checkFeed(feed: NewsFeedSource, theaters: string[], opts: Options
     return report;
   }
 
-  const results = await pooled(links, opts.concurrency, url => head(url, opts.timeoutMs));
+  const results = await pooled(links, opts.concurrency, url => open(url, opts.timeoutMs));
   report.checked = links.length;
   results.forEach((result, i) => {
     if (!result.ok) report.broken.push({ url: links[i], ...result.failure });
@@ -377,7 +416,14 @@ async function main(): Promise<void> {
   process.exit(reports.some(isBroken) ? 1 : 0);
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(2);
-});
+// Only sweep when run as a command. Without this, importing the module for a
+// test would start a few hundred live requests and then call process.exit.
+const invokedDirectly =
+  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
+  main().catch(err => {
+    console.error(err);
+    process.exit(2);
+  });
+}

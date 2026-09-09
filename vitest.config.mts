@@ -12,6 +12,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // scripts/ too: the link checker decides what counts as breakage, and that
+    // judgement deserves tests as much as anything under src/.
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.mts'],
   },
 });
