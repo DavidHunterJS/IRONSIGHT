@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { withNetworkRetry, classifyStatus, diagnose } from './check-feed-links.mts';
+import {
+  withNetworkRetry,
+  classifyStatus,
+  diagnose,
+  newestItemDate,
+  classifyStaleness,
+} from './check-feed-links.mts';
 
 // These three functions decide what the checker calls breakage. Getting them
 // wrong is worse than having no checker: a report full of false alarms is one
@@ -66,6 +72,87 @@ describe('withNetworkRetry', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('newestItemDate', () => {
+  const feed = (items: string) =>
+    `<?xml version="1.0"?><rss><channel><title>t</title>${items}</channel></rss>`;
+  const item = (date: string) => `<item><title>x</title><pubDate>${date}</pubDate></item>`;
+
+  it('takes the newest item, not the first', () => {
+    // Plenty of feeds are not ordered by date.
+    const xml = feed(
+      item('Mon, 01 Jan 2024 00:00:00 GMT') +
+      item('Wed, 09 Sep 2026 12:00:00 GMT') +
+      item('Tue, 02 Jan 2024 00:00:00 GMT'),
+    );
+    expect(newestItemDate(xml)?.toISOString()).toBe('2026-09-09T12:00:00.000Z');
+  });
+
+  it('reads a date wrapped in CDATA', () => {
+    // The Diplomat publishes '<pubDate><![CDATA[...]]></pubDate>'. A regex
+    // tag-stripper misses this and reports a healthy feed as dateless — I made
+    // exactly that mistake measuring for this feature, which is why parsing
+    // goes through the XML parser.
+    const xml = feed('<item><title>x</title><pubDate><![CDATA[Wed, 09 Sep 2026 22:39:00 +0900]]></pubDate></item>');
+    expect(newestItemDate(xml)).not.toBeNull();
+  });
+
+  it('reads Atom entries too', () => {
+    const xml = `<?xml version="1.0"?><feed><entry><title>x</title><published>2026-09-09T12:00:00Z</published></entry></feed>`;
+    expect(newestItemDate(xml)?.toISOString()).toBe('2026-09-09T12:00:00.000Z');
+  });
+
+  it('reads a namespaced dc:date', () => {
+    // Taipei Times dates every item with <dc:date> and nothing else.
+    // getElementsByTagName('date') does not match it — the qualified name is
+    // required — so a plain tag list reports a healthy daily as dateless.
+    const xml = `<?xml version="1.0"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/"><channel>` +
+      `<item><title>x</title><dc:date>2026-09-10T08:00:00+08:00</dc:date></item></channel></rss>`;
+    expect(newestItemDate(xml)?.toISOString()).toBe('2026-09-10T00:00:00.000Z');
+  });
+
+  it('falls back to the channel date when items carry none', () => {
+    const xml = `<?xml version="1.0"?><rss><channel><lastBuildDate>Wed, 09 Sep 2026 12:00:00 GMT</lastBuildDate><item><title>x</title></item></channel></rss>`;
+    expect(newestItemDate(xml)?.toISOString()).toBe('2026-09-09T12:00:00.000Z');
+  });
+
+  it('returns null when there is nothing to read', () => {
+    // Nikkei Asia publishes 50 items with no dates anywhere. That is 'cannot
+    // assess', not 'stale' — the feed is alive and still contributes.
+    expect(newestItemDate(feed('<item><title>x</title></item>'))).toBeNull();
+    expect(newestItemDate('not xml at all')).toBeNull();
+  });
+
+  it('ignores a date it cannot parse rather than guessing', () => {
+    expect(newestItemDate(feed(item('sometime last week')))).toBeNull();
+  });
+});
+
+describe('classifyStaleness', () => {
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+
+  it('flags a feed nobody publishes to any more', () => {
+    // CNN's Middle East feed answers 200 with 30 items last updated in 2022.
+    expect(classifyStaleness(daysAgo(1415))?.kind).toBe('stale');
+    expect(classifyStaleness(daysAgo(216))?.kind).toBe('stale');
+  });
+
+  it('leaves a periodic publisher alone', () => {
+    // CSIS Beyond Parallel runs three weeks between posts; Global Times'
+    // partial feed about the same. Flagging those is the cry-wolf failure.
+    expect(classifyStaleness(daysAgo(21))).toBeUndefined();
+    expect(classifyStaleness(daysAgo(18))).toBeUndefined();
+    expect(classifyStaleness(daysAgo(0))).toBeUndefined();
+  });
+
+  it('says how old rather than just that it is old', () => {
+    expect(classifyStaleness(daysAgo(1415))?.detail).toMatch(/1415 days/);
+  });
+
+  it('cannot judge a feed with no date', () => {
+    expect(classifyStaleness(null)).toBeUndefined();
   });
 });
 
