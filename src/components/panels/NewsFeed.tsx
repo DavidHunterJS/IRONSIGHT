@@ -4,6 +4,7 @@ import { useConflictFeed, timeAgo, useTick } from '@/lib/hooks';
 import { useConflict } from '@/lib/conflicts/context';
 import { FeedBadge, FeedFallback, shouldShowFallback } from '@/components/FeedState';
 import { sanitizeUrl } from '@/lib/security/sanitize';
+import { colourForSource } from '@/lib/publisher';
 import type { NewsItem } from '@/types';
 
 // Reference implementation of the panel failure-state pattern:
@@ -52,6 +53,8 @@ export default function NewsFeed() {
             )}
             {items.map((item, i) => {
               const href = sanitizeUrl(item.link);
+              // The outlet that wrote it, falling back to the feed it came from.
+              const label = item.publisher || item.source;
               const Wrapper = href ? 'a' : 'div';
               return (
                 <Wrapper
@@ -62,11 +65,13 @@ export default function NewsFeed() {
                   <span
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded mt-0.5 shrink-0"
                     style={{
-                      backgroundColor: SOURCE_COLORS[item.source] || '#555',
+                      // Hand-picked colours win; anything else gets a stable one
+                      // derived from the name rather than a uniform grey.
+                      backgroundColor: SOURCE_COLORS[label] ?? colourForSource(label),
                       color: '#fff',
                     }}
                   >
-                    {item.source}
+                    {label}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] leading-tight text-[var(--text-primary)] truncate">

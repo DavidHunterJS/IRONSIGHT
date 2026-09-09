@@ -1,7 +1,13 @@
 export interface NewsItem {
   title: string;
   link: string;
+  // The feed this came from. Drives relevance filtering and the unfiltered
+  // allowlist, so it stays the configured feed name even when the item was
+  // aggregated from somewhere else.
   source: string;
+  // The outlet that actually wrote it, where the feed reports one. Google News
+  // items are all filed under one source; this is what the badge shows.
+  publisher?: string;
   pubDate: string;
   category?: string;
 }
