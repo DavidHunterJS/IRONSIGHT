@@ -302,7 +302,20 @@ export default function ConflictMap({ className }: MapProps) {
       center: cfg.mapCenter, zoom: cfg.mapZoom, zoomControl: false, attributionControl: false,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+    // Esri Dark Gray Canvas — keyless, and dark enough for the overlays to read.
+    // CARTO's anonymous basemap endpoint now stamps an "API KEY REQUIRED"
+    // watermark into every tile, and this project takes no API keys.
+    // Esri splits shading and place labels across two layers; labels are added
+    // second so they stack above the base but still under every vector overlay.
+    // Tiles stop at z16, so Leaflet upscales past that instead of showing
+    // Esri's "Map data not yet available" placeholder.
+    const basemap = (service: string) =>
+      L!.tileLayer(
+        `https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/${service}/MapServer/tile/{z}/{y}/{x}`,
+        { maxZoom: 19, maxNativeZoom: 16 },
+      ).addTo(map);
+    basemap('World_Dark_Gray_Base');
+    basemap('World_Dark_Gray_Reference');
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     cityLayerRef.current = L.layerGroup().addTo(map);

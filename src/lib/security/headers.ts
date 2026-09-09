@@ -7,7 +7,7 @@
 //
 // CSP allowlist is derived from what the app actually loads:
 //   fonts.googleapis.com / fonts.gstatic.com  — JetBrains Mono
-//   *.basemaps.cartocdn.com                   — Leaflet dark basemap tiles
+//   services.arcgisonline.com                 — Leaflet dark basemap tiles
 //   raw.githubusercontent.com                 — Natural Earth boundary GeoJSON
 // Everything else is proxied through our own /api routes, so connect-src stays
 // tight. Add hosts without editing code via CSP_EXTRA_HOSTS.
@@ -50,7 +50,7 @@ export function hstsHeader(): Record<string, string> {
 }
 
 const FONT_HOSTS = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
-const TILE_HOSTS = ['https://*.basemaps.cartocdn.com'];
+const TILE_HOSTS = ['https://services.arcgisonline.com'];
 const GEO_HOSTS = ['https://raw.githubusercontent.com'];
 
 /**
