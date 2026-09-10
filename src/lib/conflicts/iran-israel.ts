@@ -254,10 +254,17 @@ export const iranIsrael: ConflictConfig = {
       // left filtered so the theater keywords still scope it.
       { url: 'https://news.google.com/rss/search?q=site:reuters.com+when:1d&hl=en-US&gl=US&ceid=US:en', name: 'Reuters' },
       { url: 'https://www.timesofisrael.com/feed/', name: 'Times of Israel', unfiltered: true },
-      { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'JPost', unfiltered: true },
+      // JPost and Walla label Israel's local time as GMT. Measured 2026-09-10:
+      // Walla's 'Thu, 10 Sep 2026 23:45:00 GMT' is "2026-09-10T23:45:00+03:00"
+      // on the article's own page, and JPost had items up to 2.5 hours in the
+      // future (its pages repeat the wrong offset). No other feed had a
+      // future-dated item in the same sweep; for Haaretz and Times of Israel,
+      // which publish every few minutes, that rules the fault out. Ynet's feed
+      // was stuck at the time, so it could not be judged.
+      { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'JPost', unfiltered: true, clockZone: 'Asia/Jerusalem' },
       { url: 'https://www.ynetnews.com/Integration/StoryRss2.xml', name: 'Ynet', unfiltered: true },
       { url: 'https://rcs.mako.co.il/rss/news-military.xml', name: 'N12', unfiltered: true },
-      { url: 'https://rss.walla.co.il/feed/22', name: 'Walla', unfiltered: true },
+      { url: 'https://rss.walla.co.il/feed/22', name: 'Walla', unfiltered: true, clockZone: 'Asia/Jerusalem' },
       { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', name: 'The National' },
       // CNN's Middle East feed was here. It answered 200 with a well-formed
       // document for years after it stopped publishing — the link checker
