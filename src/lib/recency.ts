@@ -44,8 +44,9 @@ const MAX_ITEM_AGE_MS = MAX_ITEM_AGE_DAYS * 86_400_000;
  * True when an item is known to be older than the window.
  *
  * Unknown is not old. An item with no parseable date is kept, because some
- * feeds date items in fields the route does not read and would otherwise lose
- * current reporting wholesale. Future dates are kept too: clock and timezone
+ * feeds carry no dates at all (Nikkei Asia) and a date field nobody reads yet
+ * would otherwise drop current reporting wholesale - as Taipei Times' did until
+ * #31. Future dates are kept too: clock and timezone
  * skew in a feed is a different problem from age.
  */
 export function isTooOld(pubDate: string, now: number): boolean {
