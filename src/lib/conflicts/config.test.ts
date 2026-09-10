@@ -200,6 +200,27 @@ describe('north-korea', () => {
     expect(re.test('Israeli strikes reported near Tehran')).toBe(false);
   });
 
+  it('matches the abbreviations headlines actually use', () => {
+    // Korean outlets and the BBC write 'N. Korea' and 'N Korea'. Both of these
+    // were dropped from filtered feeds on 2026-09-10.
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test('N Korea has built two-storey uranium enrichment facility, says watchdog')).toBe(true);
+    expect(re.test("S. Korea, U.S. hold talks on joint responses to N. Korea's WMD")).toBe(true);
+    expect(re.test('N. Korean troops cross MDL more than 20 times in August')).toBe(true);
+    expect(re.test('North Korea test-fires two ICBMs')).toBe(true);
+  });
+
+  it('leaves "S. Korea" alone, because Yonhap uses it for everything', () => {
+    // Matching it would have added basketball, flood relief and child-welfare
+    // rankings for roughly two alliance stories. 'South Korea' spelled out is
+    // still matched; the abbreviation is where the domestic news lives.
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test("(Asiad) S. Korea beats Saudi Arabia to open men's basketball tournament")).toBe(false);
+    expect(re.test('S. Korea ranks 27th among wealthy nations for child well-being: UNICEF')).toBe(false);
+    // And the abbreviation must not fire inside a word.
+    expect(re.test('Samsung opens a new chip plant in Korea')).toBe(false);
+  });
+
   it('does not pick a side on the naming of the eastern sea', () => {
     // "East Sea" is Korean usage, "Sea of Japan" international. The config
     // writes both rather than choosing, and the filter matches either.
@@ -327,5 +348,23 @@ describe('global', () => {
     // Bare "strike" and "offensive" would wreck this at global scope.
     expect(re.test('Union announces strike over pay dispute')).toBe(false);
     expect(re.test('Critics called the remarks deeply offensive')).toBe(false);
+  });
+
+  it('matches its terms in the plural, and "counteroffensive" as one word', () => {
+    // Every term was anchored at both ends in the singular, so 'missiles',
+    // 'airstrikes' and 'warships' failed, and 'counteroffensive' failed the
+    // separator. Every headline below was in a configured feed on 2026-09-10
+    // and failed the filter; across all 4,034 titles that day the fix newly
+    // matched 78 conflict headlines and lost none.
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test('Houthis launch 14 missiles, drone attacks on western Yemen')).toBe(true);
+    expect(re.test('US launches new airstrikes on Iran, with Tehran firing back at 3 Gulf Arab states')).toBe(true);
+    expect(re.test('With Close Calls on U.S. Warships, Iran Shows New Appetite for Escalation')).toBe(true);
+    expect(re.test('US-backed effort to disarm Iraq’s Iran-linked militias hits setback, experts say')).toBe(true);
+    expect(re.test('Ukrainian counteroffensive pushes back Russian forces near Lyman, Russian military bloggers say')).toBe(true);
+    expect(re.test('How Ukrainian Drone Strikes Are Pounding Russia’s Economy')).toBe(true);
+    // The plurals must not reopen what the compounds were there to prevent.
+    expect(re.test('Carney, at a Cabinet Retreat, Considers Further Trade Strikes Against the U.S.')).toBe(false);
+    expect(re.test('Eiffel Tower Workers Strike, Saying Women Were Excluded From Hindu Group’s Visit')).toBe(false);
   });
 });

@@ -317,7 +317,13 @@ export const northKorea: ConflictConfig = {
     ],
     // Korea-specific geography and actors. Deliberately avoids bare "japan" and
     // "china", which would pull in unrelated regional business coverage.
-    newsRelevanceKeywords: /north korea|dprk|pyongyang|kim jong|kim yo jong|kcna|south korea|\brok\b|\busfk\b|inter-?korean|korean peninsula|\bdmz\b|panmunjom|\bjsa\b|38th parallel|northern limit line|\bnll\b|yeonpyeong|baengnyeong|\bicbm\b|hwasong|musudan|\bnodong\b|pukguksong|punggye|yongbyon|sohae|tongchang|musudan-ri|\bsinpo\b|\bslbm\b|denuclear|six-party|kaesong|camp humphreys|pyeongtaek|\bosan\b|\bkunsan\b|yellow sea|east sea|sea of japan|korea strait|juche|workers.? party of korea/i,
+    //
+    // 'N. Korea' and 'N Korea' are how Yonhap, KBS and the BBC write it in
+    // headlines; without them the filter dropped a uranium-facility story and
+    // a WMD-talks story on 2026-09-10. 'S. Korea' is left out on purpose: the
+    // same outlets use it for sport and domestic news, and measured that day
+    // it would have added about nine off-topic rows for two on-topic ones.
+    newsRelevanceKeywords: /north korea|\bn\.? ?korea|dprk|pyongyang|kim jong|kim yo jong|kcna|south korea|\brok\b|\busfk\b|inter-?korean|korean peninsula|\bdmz\b|panmunjom|\bjsa\b|38th parallel|northern limit line|\bnll\b|yeonpyeong|baengnyeong|\bicbms?\b|hwasong|musudan|\bnodong\b|pukguksong|punggye|yongbyon|sohae|tongchang|musudan-ri|\bsinpo\b|\bslbms?\b|denuclear|six-party|kaesong|camp humphreys|pyeongtaek|\bosan\b|\bkunsan\b|yellow sea|east sea|sea of japan|korea strait|juche|workers.? party of korea/i,
 
     // Verified active on 2026-09-01. Short on purpose: the telegram route does
     // no relevance filtering, so a general OSINT channel would fill this panel
