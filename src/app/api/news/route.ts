@@ -13,6 +13,7 @@ import { sanitizeText, sanitizeUrl } from '@/lib/security/sanitize';
 import { cached, cacheKey } from '@/lib/cache';
 import { CACHE_TTL, UPSTREAM } from '@/lib/config';
 import { feedResponse, feedUnavailable, statusFromSettled } from '@/lib/api/respond';
+import { failedSources } from '@/lib/api/failures';
 import type { NewsFeedSource } from '@/lib/conflicts';
 import type { NewsItem } from '@/types';
 
@@ -164,7 +165,8 @@ async function buildNews(conflictKey: string) {
     feeds.map(feed => withBudget(fetchRSS(feed), ROUTE_BUDGET_MS)),
   );
 
-  const health = statusFromSettled(results);
+  // Which sources failed and why, not just how many - see failures.ts.
+  const health = { ...statusFromSettled(results), failed: failedSources(results, feeds.map(f => f.name)) };
 
   // Age is judged here, before translation and clustering, so an old item can
   // neither cost a translation call nor lead a cluster of current reports.
@@ -233,6 +235,7 @@ export async function GET(req: Request) {
       ageMs: result.ageMs,
       sourcesOk: result.value.health.sourcesOk,
       sourcesTotal: result.value.health.sourcesTotal,
+      failed: result.value.health.failed,
       error: result.error,
     });
   } catch (err) {

@@ -8,7 +8,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **38 North fails from Vercel, on two readings.** The live north-korea panel carried no 38 North rows at both checks on 2026-09-10 - reporting `20/21` sources in the morning and `19/21` (degraded) that evening - while local builds the same day got `21/21` and served its rows. Likely a block on datacenter addresses or on the server's User-Agent. Next: fetch it from a Vercel function or preview with the route's headers to see the status and body it returns, and find the second source failing there.
+- [ ] **38 North fails from Vercel, on two readings - read the reason once #43 is live.** The live north-korea panel carried no 38 North rows at both checks on 2026-09-10 (`20/21` in the morning, `19/21` degraded in the evening) while local builds got every source. Ruled out that evening: the feed's size (157 KB) and speed (0.36 s); the User-Agent (production's exact `IRONSIGHT/1.0 (+OSINT aggregator; public feeds only)` gets the full feed from here); a blanket data-centre block (a fetch from a data centre got it); Cloudflare as such (NK News is behind Cloudflare too and works on Vercel). What remains is a rule on 38 North's side against Vercel's AWS addresses. Preview deployments sit behind Vercel's login, so #43 makes production say it: `curl -sI 'https://ironsight-two.vercel.app/api/news?conflict=north-korea' | grep -i x-feed-failed`. An `html` reason would mean a challenge page; `http 403` a WAF block; `network` a refused connection. The same header will name the second source failing there.
 
 ### Relevance filters
 
@@ -78,3 +78,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Read Taipei Times' 08:00 edition stamp as the midnight its pages give~~ ✅ done 2026-09-10 (#40)
 - [x] ~~Replace Ynet's frozen feed: ynetnews.com served a days-old copy of the Hebrew feed; the English feed is live on ynet.co.il~~ ✅ done 2026-09-10 (#41)
 - [x] ~~Remove Korea Times from north-korea: its old feed redirects to an empty one, and its new feeds stamp every item with the batch time~~ ✅ done 2026-09-10 (#42)
+- [x] ~~Say which sources failed and why, not just how many, in an X-Feed-Failed header~~ ✅ done 2026-09-10 (#43)
