@@ -8,7 +8,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **Korea Times' feed went empty on 2026-09-10.** The configured `https://www.koreatimes.co.kr/www/rss/nation.xml` now 301s to `https://feed.koreatimes.co.kr/k/southkorea.xml`, which answers 200 with a well-formed channel and no items, so `check:links -- --conflict=north-korea` exits 1 ("feed parsed but yielded no item links"). The same URL returned 15 dated items earlier that day, so this may be a migration in progress rather than a dead feed. One reading - re-check before replacing the URL. Ynet's frozen feed (#41) started as the same kind of single reading and turned out to be real.
+- [ ] **38 North fails from Vercel, on two readings.** The live north-korea panel carried no 38 North rows at both checks on 2026-09-10 - reporting `20/21` sources in the morning and `19/21` (degraded) that evening - while local builds the same day got `21/21` and served its rows. Likely a block on datacenter addresses or on the server's User-Agent. Next: fetch it from a Vercel function or preview with the route's headers to see the status and body it returns, and find the second source failing there.
 
 ### Relevance filters
 
@@ -33,7 +33,6 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 - [ ] **CENTCOM is the last feed the staleness check flags.** `npm run check:links` reports it every sweep and exits 1 until it is dealt with. (CNN was removed in #29; the Taiwan Strait query was reworded in #32.) It no longer reaches a panel: the 14-day age window (#30) drops all fifteen of its rows. Measured live, those rows were on **red-sea** (rows 48-62 of 62, 217-329 days old), not iran-israel as first recorded - iran-israel has 100 newer items, so CENTCOM never survived its slice. What is left is only whether to keep a feed that contributes nothing while quiet and comes back on its own if it resumes, or drop it so the checker goes green.
 - [ ] **Nikkei Asia carries no dates at all.** Its RSS 1.0 items have a title and a link and nothing else - no date at item or channel level, so there is no field to read (#31 checked every configured feed; Nikkei and Taipei Times were the only two arriving undated, and only Taipei Times had a date to find). It contributes no rows today only because none of its 15 headlines on 2026-09-10 passed the taiwan-china or north-korea relevance filters. When one does, it will be kept by the age window and sort below every dated row. Options: date items by when we first saw them (needs state the route does not have), or leave it and accept the sort position.
-- [ ] **38 North may be failing from Vercel only.** The live north-korea panel reported `20/21` sources and carried no 38 North rows; a local build on the same day reported `21/21` and served seven. One reading - confirm with `check:links` and a second live sample before concluding it blocks datacenter addresses.
 - [ ] **Re-check the theaters that lean on one source.** taiwan-china now runs without a second Chinese state outlet after China Daily was dropped; Global Times is the only one left. Worth a look at whether other theaters have a similarly thin slot.
 
 ### Backlog (from the original brief)
@@ -78,3 +77,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Read Walla's and JPost's timestamps as Israel time, which they label GMT~~ ✅ done 2026-09-10 (#39)
 - [x] ~~Read Taipei Times' 08:00 edition stamp as the midnight its pages give~~ ✅ done 2026-09-10 (#40)
 - [x] ~~Replace Ynet's frozen feed: ynetnews.com served a days-old copy of the Hebrew feed; the English feed is live on ynet.co.il~~ ✅ done 2026-09-10 (#41)
+- [x] ~~Remove Korea Times from north-korea: its old feed redirects to an empty one, and its new feeds stamp every item with the batch time~~ ✅ done 2026-09-10 (#42)
