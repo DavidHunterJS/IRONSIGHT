@@ -8,7 +8,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **The global panel now only shows the last two days.** After #36 its filtered feeds contribute about 20 current rows, and at the 100-row cap the oldest row fell from 5.9 days to 2.0. What gave way was mostly defence trade press - USNI 13 rows to 7, War on the Rocks 13 to 7 - but it included real reporting: Long War Journal's 'Iran continues attacks on Kurdish opposition group in northern Iraq' and 'Israel claims control of Ali al Taher', and Fox's 'NATO member boots 10 Russian diplomats', all two to four days old. The cap is recency-only, so a worldwide panel always saturates. Options worth measuring: a higher cap for global, a per-source ceiling so one busy wire cannot take thirty rows, or accepting that global is a last-48-hours view.
+- [ ] **The 100-row cap decides which sources a busy theater shows.** Measured 2026-09-10 on a build with the cap lifted: iran-israel would carry 258 rows and its 100th is about 5 hours old; russia-ukraine 142 (12 hours); global 135 (2 days); the other three never reach it. The cap keeps the newest rows, so it keeps the fastest publishers: in iran-israel Walla kept 15 of 15 while Ynet kept 0 of 15, DoD 0 of 10, Long War Journal 0 of 8, BBC 1 of 13, N12 1 of 15, and the three theater searches 3 of 34. After #37 dated PressTV honestly it fell past the cap too - it had held rows 1-15 only because its items were stamped with the feed's build time. Anything dated to the day rather than the minute cannot compete with a 5-hour window. Options to measure: a per-source ceiling within the 100, a higher cap, or a time window rather than a count.
 
 ### Relevance filters
 
@@ -75,3 +75,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Drop search results from sites that publish no news (Britannica, Disney+)~~ ✅ done 2026-09-10 (#34)
 - [x] ~~Match 'N. Korea' in the north-korea filter, and plurals and 'counteroffensive' in the global one~~ ✅ done 2026-09-10 (#35)
 - [x] ~~Give the global filter the vocabulary the major outlets headline wars with~~ ✅ done 2026-09-10 (#36)
+- [x] ~~Date PressTV's items from their URLs instead of the feed's build time, which pinned them to the top of iran-israel~~ ✅ done 2026-09-10 (#37)
