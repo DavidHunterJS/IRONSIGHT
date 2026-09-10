@@ -3,6 +3,7 @@ import { rewriteLinkHost } from '@/lib/links';
 import { extractPublisher } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
+import { isTooOld } from '@/lib/recency';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
@@ -157,10 +158,15 @@ async function buildNews(conflictKey: string) {
 
   const health = statusFromSettled(results);
 
+  // Age is judged here, before translation and clustering, so an old item can
+  // neither cost a translation call nor lead a cluster of current reports.
+  const now = Date.now();
+
   const allNews: NewsItem[] = results
     .filter((r): r is PromiseFulfilledResult<NewsItem[]> => r.status === 'fulfilled')
     .flatMap(r => r.value)
-    .filter(isRelevant);
+    .filter(isRelevant)
+    .filter(item => !isTooOld(item.pubDate, now));
 
   // Translate Hebrew titles to English
   const hebrewItems = allNews.filter(item => isHebrew(item.title));
@@ -188,7 +194,6 @@ async function buildNews(conflictKey: string) {
   );
 
   // Sort by closest to now first (handles RSS feeds with future timestamps)
-  const now = Date.now();
   deduped.sort((a, b) => {
     const distA = Math.abs(now - new Date(a.pubDate || 0).getTime());
     const distB = Math.abs(now - new Date(b.pubDate || 0).getTime());
