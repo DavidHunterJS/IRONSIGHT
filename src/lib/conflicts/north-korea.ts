@@ -285,7 +285,12 @@ export const northKorea: ConflictConfig = {
       { url: 'https://en.yna.co.kr/RSS/news.xml', name: 'Yonhap' },
       { url: 'https://world.kbs.co.kr/rss/rss_news.htm?lang=e', name: 'KBS World' },
       { url: 'https://www.koreaherald.com/rss/newsAll', name: 'Korea Herald' },
-      { url: 'https://www.koreatimes.co.kr/www/rss/nation.xml', name: 'Korea Times' },
+      // Korea Times was here and was removed on 2026-09-10. Its nation.xml now
+      // redirects to feed.koreatimes.co.kr/k/southkorea.xml, which was empty at
+      // two readings eight hours apart. Its other new feeds carry a dozen items
+      // each, all stamped with the batch time rather than their own (an article
+      // the page dates 16:25 UTC was stamped 22:42), and there is no North Korea
+      // section. Worth another look if those feeds mature.
       // DPRK specialists — every item is on-topic by construction, so these are
       // the ones that genuinely earn the unfiltered flag.
       { url: 'https://www.nknews.org/feed/', name: 'NK News', unfiltered: true },
