@@ -5,6 +5,7 @@ import { extractPublisher, isNotNews } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
 import { isTooOld } from '@/lib/recency';
+import { selectRows, NEWS_ROW_CAP, ROWS_PER_SOURCE } from '@/lib/rowLimit';
 import { fetchUpstreamText } from '@/lib/upstream';
 import { isHebrew, translateFreeText } from '@/lib/hebrew';
 import { getConflict, getConflictFromRequest } from '@/lib/conflicts';
@@ -52,9 +53,8 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
 
   // Some feeds (PressTV among them) publish items with no date element at all,
   // only a channel-level lastBuildDate. Undated items resolve to epoch 1970 in
-  // the recency sort below and are then cut by the 100-item slice, so the source
-  // fetches successfully and still contributes nothing. The build time is kept
-  // as the last resort, and as an upper bound - see undatedItemDate.
+  // the recency sort below and sink beneath everything dated. The build time is
+  // kept as the last resort, and as an upper bound - see undatedItemDate.
   const channel = doc.getElementsByTagName('channel')[0];
   const channelDate = channel
     ? sanitizeText(getTextContent(channel, 'lastBuildDate'), { maxLength: 64 })
@@ -210,7 +210,9 @@ async function buildNews(conflictKey: string) {
     throw new Error(`all ${health.sourcesTotal} news sources failed`);
   }
 
-  return { items: deduped.slice(0, 100), health };
+  // Not simply the 100 newest: that handed a busy theater's panel to whoever
+  // publishes fastest. Every source keeps its few newest rows; see rowLimit.ts.
+  return { items: selectRows(deduped, { cap: NEWS_ROW_CAP, perSource: ROWS_PER_SOURCE }), health };
 }
 
 export async function GET(req: Request) {
