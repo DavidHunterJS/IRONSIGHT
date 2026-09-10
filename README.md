@@ -180,6 +180,11 @@ feed has done that since 2022, and CENTCOM's press releases were nine months
 old while still filling rows in a live panel. Anything quiet for 30 days is
 flagged — the slowest legitimate publishers here run about three weeks.
 
+The panels are protected separately: the news route drops any item more than
+14 days old (`src/lib/recency.ts`), so a quiet feed stops filling rows long
+before it is flagged here. The two answer different questions — whether an
+item is current, and whether a feed is abandoned.
+
 So it reports only what a reader would actually hit — certificate errors, dead
 hosts, 404s, abandoned feeds. Publishers that refuse automated clients but serve browsers fine
 (NYT, WSJ, CENTCOM among them) are listed separately and do not fail the run,
