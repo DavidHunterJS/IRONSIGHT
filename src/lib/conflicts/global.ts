@@ -305,7 +305,13 @@ export const global: ConflictConfig = {
     // name that scopes the theater, so the filter has to describe what counts as
     // an event. Bare "strike" and "offensive" are deliberately absent — they
     // match pay strikes and offensive remarks. Compounds are used instead.
-    newsRelevanceKeywords: /\b(?:missile|airstrike|air strike|drone strike|rocket attack|artillery|shelling|ballistic|hypersonic|icbm)\b|\b(?:military|ground|counter)[- ]offensive\b|\b(?:incursion|insurgen\w*|militia|paramilitary|junta|armistice|ceasefire|truce|blockade|embargo)\b|\bcoup\b|\bwar crimes?\b|\bgenocide\b|\bcasualt\w+\b|\brefugees?\b|\bdisplaced\b|\bnuclear test\b|\bborder clash\b|\bcross-border\b|\bpeacekeep\w*\b|\bsecurity council\b|\bnato\b|\bcentcom\b|\bhostages?\b|\bcar bomb\b|\bsuicide bomb\w*\b|\bshot down\b|\bshoot down\b|\bwarship\b|\bnaval clash\b/i,
+    //
+    // Every term takes its plural. They were anchored at both ends in the
+    // singular only, so 'missiles', 'airstrikes' and 'warships' failed, as did
+    // 'counteroffensive' written as one word. Measured 2026-09-10 across all
+    // 4,034 titles in every configured feed: 78 conflict headlines newly
+    // matched, none lost, none off-topic.
+    newsRelevanceKeywords: /\b(?:missiles?|airstrikes?|air strikes?|drone strikes?|rocket attacks?|artillery|shelling|ballistic|hypersonic|icbms?)\b|\b(?:military|ground|counter)[- ]?offensives?\b|\b(?:incursions?|insurgen\w*|militias?|paramilitar\w*|juntas?|armistice|ceasefires?|truces?|blockades?|embargo(?:es)?)\b|\bcoups?\b|\bwar crimes?\b|\bgenocide\b|\bcasualt\w+\b|\brefugees?\b|\bdisplaced\b|\bnuclear tests?\b|\bborder clash(?:es)?\b|\bcross-border\b|\bpeacekeep\w*\b|\bsecurity council\b|\bnato\b|\bcentcom\b|\bhostages?\b|\bcar bombs?\b|\bsuicide bomb\w*\b|\bshot down\b|\bshoot down\b|\bwarships?\b|\bnaval clash(?:es)?\b/i,
 
     // The only theater where these belong. They were excluded from all five
     // regional theaters because the telegram route does no relevance filtering

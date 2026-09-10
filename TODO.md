@@ -8,7 +8,11 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **The north-korea relevance filter misses 'N. Korea'.** It matches `north korea` but not the abbreviation Korean outlets and the BBC use in headlines, so two on-topic stories were dropped from filtered feeds on 2026-09-10: BBC's 'N Korea has built two-storey uranium enrichment facility, says watchdog' and Yonhap's 'S. Korea, U.S. hold talks on joint responses to N. Korea's WMD'. Adding `n\.? ?korea` looks safe; 'S. Korea' alone should stay unmatched, since most such Yonhap headlines that day were basketball and flood relief. The global filter has a similar gap: `counter[- ]offensive` needs a separator, so 'Ukrainian counteroffensive pushes back Russian forces near Lyman' fails it. Both found while measuring #34.
+- [ ] **The global filter drops most of the world's conflict reporting from the major outlets.** Its seven filtered feeds - BBC World, NYT World, Al Jazeera, Reuters, WSJ, Fox and The Diplomat - put 103 items through it on 2026-09-10 and it kept 3. Of the 100 it dropped, about 28 were conflict reporting: the Houthis seizing Mokha (BBC, NYT, WSJ, Reuters, Fox), 'U.S. Strikes Iranian Oil Tankers in Response to Tehran's Attacks on Navy Ships', 'Family of four killed as they slept in Israeli strike on Gaza', 'Russia's new jet-powered drones outpacing Ukraine's air defences', 'Russia Is Helping Supercharge North Korea's Military Drones'. The day's biggest story reached the global panel only through the Google News searches. #35 fixed the plurals, which recovered one of them; the rest is vocabulary. The filter is deliberately "conflict vocabulary, not geography" and deliberately omits bare 'strike' and 'offensive', and it has no 'war', no 'strikes', no 'drones', no actor names (Houthi, Hezbollah, Hamas). What global should cover is a design decision - measure candidate terms against that day's 100 drops and the other theaters' feeds, the way #35 was, before choosing.
+
+### Relevance filters
+
+- [ ] **Two one-word gaps in regional filters.** russia-ukraine dropped 'Rosneft's Ryazan Oil Refinery Shuts Down After Drone Attack' (Moscow Times) - Ryazan is not in its place list, and no place list is ever complete. red-sea dropped Splash 247's 'Hormuz attacks reach wartime high' - it matches 'strait of hormuz' but not bare 'Hormuz'. Found reading every conflict-worded drop across the four regional theaters (#35); everything else those filters dropped belonged to another theater.
 
 ### Google News searches
 
@@ -67,3 +71,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Reword the Taiwan Strait query, which matched only 2022-2025 results, to `PLA aircraft Taiwan when:7d`~~ ✅ done 2026-09-10 (#32)
 - [x] ~~Bound the three Google News searches the age window was emptying, and reword the ceasefire search~~ ✅ done 2026-09-10 (#33)
 - [x] ~~Drop search results from sites that publish no news (Britannica, Disney+)~~ ✅ done 2026-09-10 (#34)
+- [x] ~~Match 'N. Korea' in the north-korea filter, and plurals and 'counteroffensive' in the global one~~ ✅ done 2026-09-10 (#35)
