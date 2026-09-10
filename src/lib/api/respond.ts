@@ -8,6 +8,7 @@
 //   X-Feed-Age      age of the served data in seconds
 //   X-Feed-Sources  "ok/total" upstream sources that answered
 //   X-Feed-Error    short reason, when something went wrong
+//   X-Feed-Failed   'Name: reason; ...' for each source that did not answer
 
 import { NextResponse } from 'next/server';
 
@@ -19,12 +20,14 @@ export interface FeedMeta {
   sourcesOk?: number;
   sourcesTotal?: number;
   error?: string;
+  /** 'Name: reason' per failed source, from failedSources(). */
+  failed?: string[];
 }
 
 const NO_STORE = 'no-cache, no-store, must-revalidate';
 
 export function feedResponse<T>(data: T, meta: FeedMeta = {}, init: ResponseInit = {}) {
-  const { status = 'ok', ageMs = 0, sourcesOk, sourcesTotal, error } = meta;
+  const { status = 'ok', ageMs = 0, sourcesOk, sourcesTotal, error, failed } = meta;
 
   const headers: Record<string, string> = {
     'Cache-Control': NO_STORE,
@@ -38,6 +41,11 @@ export function feedResponse<T>(data: T, meta: FeedMeta = {}, init: ResponseInit
   if (error) {
     // Header values must be ASCII and short.
     headers['X-Feed-Error'] = error.replace(/[^\x20-\x7E]/g, '').slice(0, 200);
+  }
+  if (failed && failed.length > 0) {
+    // Which sources, not just how many. Reasons are a fixed vocabulary (see
+    // failures.ts); names come from config. Kept ASCII and short all the same.
+    headers['X-Feed-Failed'] = failed.join('; ').replace(/[^\x20-\x7E]/g, '').slice(0, 300);
   }
 
   return NextResponse.json(data, {
