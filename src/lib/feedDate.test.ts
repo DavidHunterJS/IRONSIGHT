@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DOMParser } from '@xmldom/xmldom';
 
-import { itemDate } from './feedDate';
+import { itemDate, undatedItemDate } from './feedDate';
 
 // Items are taken from live feeds on 2026-09-10.
 
@@ -73,5 +73,44 @@ describe('itemDate', () => {
         '</item></rdf:RDF>',
     );
     expect(itemDate(item)).toBe('');
+  });
+});
+
+describe('undatedItemDate', () => {
+  // PressTV publishes items with no date at all. The route used to give every
+  // one the feed's own build time, so all fifteen claimed to be minutes old
+  // and held rows 1-15 of the iran-israel panel permanently - six of them were
+  // from the day before. The article URL carries the real day.
+  const BUILT = 'Fri, 11 Sep 2026 00:41:49 +0330';
+
+  it("takes the day from the article's URL", () => {
+    expect(undatedItemDate(
+      'https://presstv.co.uk/Detail/2026/09/09/775988/Iran-slams-IAEA-resolution',
+      BUILT,
+    )).toBe('2026-09-09T00:00:00.000Z');
+  });
+
+  it('never dates an item later than the feed that carried it', () => {
+    // PressTV's path uses Tehran's calendar, which runs ahead of UTC late in
+    // the evening. Midnight of 11 September UTC is after this feed was built
+    // (21:11 UTC on the 10th), so the build time is the honest upper bound.
+    expect(undatedItemDate(
+      'https://presstv.co.uk/Detail/2026/09/11/776100/Some-story',
+      BUILT,
+    )).toBe(BUILT);
+  });
+
+  it("falls back to the feed's build time when the URL carries no date", () => {
+    expect(undatedItemDate('https://asia.nikkei.com/politics/defense/china-sells-j-10c', BUILT)).toBe(BUILT);
+  });
+
+  it('ignores numbers in a path that cannot be a date', () => {
+    expect(undatedItemDate('https://example.com/archive/2026/13/45/story', BUILT)).toBe(BUILT);
+    expect(undatedItemDate('https://example.com/2026/02/30/story', BUILT)).toBe(BUILT);
+  });
+
+  it('returns nothing when there is neither', () => {
+    expect(undatedItemDate('https://example.com/story', '')).toBe('');
+    expect(undatedItemDate('', '')).toBe('');
   });
 });

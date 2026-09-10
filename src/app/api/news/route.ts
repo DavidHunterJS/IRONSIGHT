@@ -1,6 +1,6 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
-import { itemDate } from '@/lib/feedDate';
+import { itemDate, undatedItemDate } from '@/lib/feedDate';
 import { extractPublisher, isNotNews } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
@@ -53,8 +53,8 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
   // Some feeds (PressTV among them) publish items with no date element at all,
   // only a channel-level lastBuildDate. Undated items resolve to epoch 1970 in
   // the recency sort below and are then cut by the 100-item slice, so the source
-  // fetches successfully and still contributes nothing. Fall back to the feed's
-  // own statement of freshness before giving up on the date.
+  // fetches successfully and still contributes nothing. The build time is kept
+  // as the last resort, and as an upper bound - see undatedItemDate.
   const channel = doc.getElementsByTagName('channel')[0];
   const channelDate = channel
     ? sanitizeText(getTextContent(channel, 'lastBuildDate'), { maxLength: 64 })
@@ -79,7 +79,11 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
     let link = sanitizeUrl(rawLink) ?? '';
     if (link && feed.rewriteLinkHost) link = rewriteLinkHost(link, feed.rewriteLinkHost);
 
-    const pubDate = sanitizeText(itemDate(item), { maxLength: 64 }) || channelDate;
+    // An item's own date, then a date in its URL, then the feed's build time.
+    // Stamping every undated item with the build time made all of them look
+    // minutes old and pinned them to the top of the panel.
+    const pubDate =
+      sanitizeText(itemDate(item), { maxLength: 64 }) || undatedItemDate(link, channelDate);
 
     if (!title) continue;
 
