@@ -35,9 +35,9 @@ describe('isTooOld', () => {
   });
 
   it('keeps an undated item, because its age is unknown rather than old', () => {
-    // Taipei Times dates its items in <dc:date>, which the route does not read,
-    // so all fifteen of its current headlines arrive with no date. Treating
-    // unknown as old would empty the theater's main Taiwanese source.
+    // Nikkei Asia's feed carries no dates at all, and until #31 Taipei Times
+    // arrived undated because the route did not read <dc:date>. Treating
+    // unknown as old would drop a source's current reporting wholesale.
     expect(isTooOld('', NOW)).toBe(false);
     expect(isTooOld('not a date', NOW)).toBe(false);
   });

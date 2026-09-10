@@ -24,6 +24,7 @@ import { pathToFileURL } from 'node:url';
 import { DOMParser } from '@xmldom/xmldom';
 
 import { rewriteLinkHost } from '../src/lib/links.ts';
+import { itemDate } from '../src/lib/feedDate.ts';
 import type { ConflictConfig, NewsFeedSource } from '../src/lib/conflicts/types.ts';
 import { iranIsrael } from '../src/lib/conflicts/iran-israel.ts';
 import { russiaUkraine } from '../src/lib/conflicts/russia-ukraine.ts';
@@ -272,17 +273,12 @@ export function newestItemDate(xml: string): Date | null {
 
   let newest: number | null = null;
   for (let i = 0; i < elements.length; i++) {
-    // 'dc:date' must be spelled with its prefix: getElementsByTagName matches
-    // the qualified name, so a bare 'date' finds nothing in the Dublin Core
-    // feeds that use it — Taipei Times dates every item that way and nothing
-    // else, and would otherwise read as dateless.
-    for (const tag of ['pubDate', 'published', 'updated', 'dc:date']) {
-      const ms = read(elements[i], tag);
-      if (ms !== null) {
-        if (newest === null || ms > newest) newest = ms;
-        break;
-      }
-    }
+    // The same reader the news route uses, so the checker cannot call a feed
+    // healthy on dates the panel never sees.
+    const text = itemDate(elements[i]);
+    if (!text) continue;
+    const ms = new Date(text).getTime();
+    if (newest === null || ms > newest) newest = ms;
   }
 
   if (newest === null) {

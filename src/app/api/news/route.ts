@@ -1,5 +1,6 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
+import { itemDate } from '@/lib/feedDate';
 import { extractPublisher } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
@@ -78,13 +79,7 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
     let link = sanitizeUrl(rawLink) ?? '';
     if (link && feed.rewriteLinkHost) link = rewriteLinkHost(link, feed.rewriteLinkHost);
 
-    const pubDate =
-      sanitizeText(
-        getTextContent(item, 'pubDate') ||
-          getTextContent(item, 'published') ||
-          getTextContent(item, 'updated'),
-        { maxLength: 64 },
-      ) || channelDate;
+    const pubDate = sanitizeText(itemDate(item), { maxLength: 64 }) || channelDate;
 
     if (!title) continue;
 

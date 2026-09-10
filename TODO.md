@@ -8,7 +8,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **Taipei Times serves every item undated.** Its feed is RSS 1.0 and dates items in `<dc:date>`, which the news route does not read (it tries `pubDate`, `published`, `updated`, then the channel's `lastBuildDate`, which this feed does not carry). All 15 of its current headlines - "Drone intrusion temporarily shuts Taichung air base" among them - show no time and sort below every dated row in taiwan-china. The link checker already parses `dc:date` for exactly this feed; the route needs the same. The age window deliberately keeps undated items so this bug costs a sort position rather than the whole source. Found while measuring the window (2026-09-10).
+- [ ] **Reword the `Taiwan Strait PLA incursion` query.** It does match things - it matches nothing *recent*. Its results were 2022-2025 think-tank pieces (Global Taiwan Institute, CFR, Jamestown), the oldest 1562 days, filling taiwan-china rows 57-64. The age window (#30) now hides them, so the query contributes nothing and `check:links` flags it. It wants rewording, and probably a `when:7d` bound like the Reuters queries already carry, which would have kept those results out in the first place.
 
 ### Clustering
 
@@ -18,7 +18,8 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 - [ ] **Two feeds the staleness check flags are still in the config.** `npm run check:links` reports them every sweep and exits 1 until they are dealt with. (CNN was the third; removed in #29.)
   - **CENTCOM** no longer reaches a panel: the 14-day age window (#30) drops all fifteen of its rows. Measured live, those rows were on **red-sea** (rows 48-62 of 62, 217-329 days old), not iran-israel as first recorded - iran-israel has 100 newer items, so CENTCOM never survived its slice. What is left is only whether to keep a feed that contributes nothing while quiet and comes back on its own if it resumes, or drop it so the checker goes green.
-  - **`Taiwan Strait PLA incursion`** does match things - it matches nothing *recent*. Its results were 2022-2025 think-tank pieces (Global Taiwan Institute, CFR, Jamestown), the oldest 1562 days, filling taiwan-china rows 57-64. The age window now hides them, so the query contributes nothing. It wants rewording, and probably a `when:7d` bound like the Reuters queries already carry, which would have kept those results out in the first place.
+  - **`Taiwan Strait PLA incursion`** - see Next up.
+- [ ] **Nikkei Asia carries no dates at all.** Its RSS 1.0 items have a title and a link and nothing else - no date at item or channel level, so there is no field to read (#31 checked every configured feed; Nikkei and Taipei Times were the only two arriving undated, and only Taipei Times had a date to find). It contributes no rows today only because none of its 15 headlines on 2026-09-10 passed the taiwan-china or north-korea relevance filters. When one does, it will be kept by the age window and sort below every dated row. Options: date items by when we first saw them (needs state the route does not have), or leave it and accept the sort position.
 - [ ] **Walla and JPost timestamps run up to ~3 hours in the future.** Measured 2026-09-10: 11 iran-israel rows dated 0.1-2.6 hours ahead, all Walla or JPost, all labelled `GMT`. The size fits Israel local time (UTC+3 in summer) written with the wrong zone. The recency sort uses distance from now in either direction, so a mislabelled item ranks as if it were hours older than it is, and `timeAgo` prints the absolute value. Not an age problem, so the age window leaves future dates alone.
 - [ ] **38 North may be failing from Vercel only.** The live north-korea panel reported `20/21` sources and carried no 38 North rows; a local build on the same day reported `21/21` and served seven. One reading - confirm with `check:links` and a second live sample before concluding it blocks datacenter addresses.
 - [ ] **Re-check the theaters that lean on one source.** taiwan-china now runs without a second Chinese state outlet after China Daily was dropped; Global Times is the only one left. Worth a look at whether other theaters have a similarly thin slot.
@@ -54,3 +55,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Flag feeds nobody publishes to any more~~ ✅ done 2026-09-09 (#28)
 - [x] ~~Remove CNN's dead Middle East feed, retiring the last HTTPS exemption~~ ✅ done 2026-09-09 (#29)
 - [x] ~~Drop news items older than 14 days, so thin theaters stop backfilling with archive~~ ✅ done 2026-09-10 (#30)
+- [x] ~~Read Taipei Times' `<dc:date>`, through one date reader shared by the route and the link checker~~ ✅ done 2026-09-10 (#31)
