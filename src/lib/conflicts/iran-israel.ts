@@ -262,7 +262,13 @@ export const iranIsrael: ConflictConfig = {
       // which publish every few minutes, that rules the fault out. Ynet's feed
       // was stuck at the time, so it could not be judged.
       { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', name: 'JPost', unfiltered: true, clockZone: 'Asia/Jerusalem' },
-      { url: 'https://www.ynetnews.com/Integration/StoryRss2.xml', name: 'Ynet', unfiltered: true },
+      // Ynetnews, English. Served from ynet.co.il: the same /Integration/ paths on
+      // ynetnews.com return copies frozen days earlier (measured 2026-09-10 - the
+      // previous URL, StoryRss2 on ynetnews.com, had not changed in three days and
+      // was the Hebrew site's feed besides; StoryRss3082 there was seven days
+      // stale). This one was 12 minutes old, English, and about 22 of 30 items on
+      // topic, against about 10 of 30 for the live Hebrew feed.
+      { url: 'https://www.ynet.co.il/Integration/StoryRss3082.xml', name: 'Ynet', unfiltered: true },
       { url: 'https://rcs.mako.co.il/rss/news-military.xml', name: 'N12', unfiltered: true },
       { url: 'https://rss.walla.co.il/feed/22', name: 'Walla', unfiltered: true, clockZone: 'Asia/Jerusalem' },
       { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', name: 'The National' },
