@@ -311,7 +311,27 @@ export const global: ConflictConfig = {
     // 'counteroffensive' written as one word. Measured 2026-09-10 across all
     // 4,034 titles in every configured feed: 78 conflict headlines newly
     // matched, none lost, none off-topic.
-    newsRelevanceKeywords: /\b(?:missiles?|airstrikes?|air strikes?|drone strikes?|rocket attacks?|artillery|shelling|ballistic|hypersonic|icbms?)\b|\b(?:military|ground|counter)[- ]?offensives?\b|\b(?:incursions?|insurgen\w*|militias?|paramilitar\w*|juntas?|armistice|ceasefires?|truces?|blockades?|embargo(?:es)?)\b|\bcoups?\b|\bwar crimes?\b|\bgenocide\b|\bcasualt\w+\b|\brefugees?\b|\bdisplaced\b|\bnuclear tests?\b|\bborder clash(?:es)?\b|\bcross-border\b|\bpeacekeep\w*\b|\bsecurity council\b|\bnato\b|\bcentcom\b|\bhostages?\b|\bcar bombs?\b|\bsuicide bomb\w*\b|\bshot down\b|\bshoot down\b|\bwarships?\b|\bnaval clash(?:es)?\b/i,
+    //
+    // The vocabulary after the naval terms was added because the list above
+    // describes events and the major outlets headline wars: its seven filtered
+    // feeds - BBC, NYT, Al Jazeera, Reuters, WSJ, Fox, The Diplomat - put 381
+    // items through it on 2026-09-10 and 47 dropped ones were conflict
+    // reporting. Measured against every one of those 381, hand-labelled:
+    //
+    //   strike named by who carried it out ('Israeli strike')   8 caught, 0 false
+    //   named armed groups                                     14 caught, 2 false
+    //   war(s), drone(s), troops and the like                  11 caught, 8 false
+    //   together                                               33 of 47, 10 false
+    //
+    // The false hits sit beside the subject rather than off it - a Bank of
+    // England rate story about 'the war's course', a WWII history interview,
+    // 'Global War on Terror' - and were accepted for the 11. 'war' is refused
+    // after trade, price, culture and similar, and bare 'strike' stays out.
+    // What remains missed names only a place ('Poland says it expects Russia
+    // will target its border crossings'). Matching the regional theaters'
+    // place filters as well caught 44 of 47 but with 52 false hits - sanctions
+    // politics, oil markets, elections - and was rejected.
+    newsRelevanceKeywords: /\b(?:missiles?|airstrikes?|air strikes?|drone strikes?|rocket attacks?|artillery|shelling|ballistic|hypersonic|icbms?)\b|\b(?:military|ground|counter)[- ]?offensives?\b|\b(?:incursions?|insurgen\w*|militias?|paramilitar\w*|juntas?|armistice|ceasefires?|truces?|blockades?|embargo(?:es)?)\b|\bcoups?\b|\bwar crimes?\b|\bgenocide\b|\bcasualt\w+\b|\brefugees?\b|\bdisplaced\b|\bnuclear tests?\b|\bborder clash(?:es)?\b|\bcross-border\b|\bpeacekeep\w*\b|\bsecurity council\b|\bnato\b|\bcentcom\b|\bhostages?\b|\bcar bombs?\b|\bsuicide bomb\w*\b|\bshot down\b|\bshoot down\b|\bwarships?\b|\bnaval clash(?:es)?\b|\b(?:israeli|russian|ukrainian|u\.?s\.?|american|iranian|saudi|houthi|israel|russia|ukraine|iran)\s+(?:air\s?|drone\s|missile\s)?strikes?\b|\b(?:houthis?|hezbollah|hamas|idf|irgc|taliban|al[- ]?qaeda|al[- ]?qaida|al[- ]?shabaab|islamic state|isis|boko haram|wagner)\b|(?<!\b(?:trade|price|culture|currency|tariff|bidding|talent|turf|star|console|chip|tech)[- ])\bwars?\b|\bdrones?\b|\b(?:troops|soldiers?|front ?lines?|invasion|bombings?|air defen[cs]es?|warplanes?|fighter jets?|gunfights?|gunfire)\b/i,
 
     // The only theater where these belong. They were excluded from all five
     // regional theaters because the telegram route does no relevance filtering

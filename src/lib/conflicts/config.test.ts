@@ -367,4 +367,27 @@ describe('global', () => {
     expect(re.test('Carney, at a Cabinet Retreat, Considers Further Trade Strikes Against the U.S.')).toBe(false);
     expect(re.test('Eiffel Tower Workers Strike, Saying Women Were Excluded From Hindu Group’s Visit')).toBe(false);
   });
+
+  it('keeps the war reporting the major outlets file', () => {
+    // BBC, NYT, Al Jazeera, Reuters, WSJ and Fox, 2026-09-10. The filter kept
+    // 3 of their 103 current items; all of these were among the 100 it dropped.
+    const re = cfg.server.newsRelevanceKeywords;
+    // A strike named by who carried it out.
+    expect(re.test('Family of four killed as they slept in Israeli strike on Gaza')).toBe(true);
+    expect(re.test('Russian strikes continue following visit by Witkoff and Kushner to Kyiv')).toBe(true);
+    // Named armed groups.
+    expect(re.test('Houthis Seize Strategic Red Sea Port, a Major Victory for Iranian Ally')).toBe(true);
+    expect(re.test('Is the Iran-backed terrorist movement Hezbollah on the ropes in Lebanon?')).toBe(true);
+    // War, drones and the forces that fight them.
+    expect(re.test("Iran war won't end until after crucial November elections, says Trump")).toBe(true);
+    expect(re.test("Russia's new jet-powered drones outpacing Ukraine's air defences with daily launches")).toBe(true);
+    expect(re.test('Canada agrees on C$350 million air defense package for Ukraine, Carney says')).toBe(true);
+  });
+
+  it('does not take trade, price or culture wars for wars', () => {
+    const re = cfg.server.newsRelevanceKeywords;
+    expect(re.test('Bombardier Shares Down as Trump’s Trade War Targets Canadian Jet Maker')).toBe(false);
+    expect(re.test('The Theme Park at the Heart of France’s Culture War')).toBe(false);
+    expect(re.test('Supermarkets cut milk prices as price war deepens')).toBe(false);
+  });
 });
