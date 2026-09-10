@@ -190,3 +190,36 @@ export function colourForSource(name: string): string {
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue} 45% 34%)`;
 }
+
+/**
+ * Hosts whose pages reach the theater searches without being reporting.
+ *
+ * Google News search returns more than news: on 2026-09-10 a Disney+ film
+ * listing ('Watch Salaar: Part 1 - Ceasefire') sat at row 13 of the global
+ * panel, and Britannica's encyclopedia entries on the Iran and Ukraine wars
+ * came through two regional searches. The searches bypass the relevance
+ * filter, and the filter would not have helped: the film passed it on the word
+ * 'ceasefire'.
+ *
+ * This says what kind of site something is - an encyclopedia, a streaming
+ * catalogue - not how far to trust it; see src/lib/disclaimer.ts. It is short,
+ * explicit and hand-edited for the same reason STATE_MEDIA is. Measured
+ * across all 248 search items that day, these two were the only hosts that
+ * publish no news at all. A reference-database page (missilethreat.csis.org)
+ * and an open blogging platform (medium.com) were considered and left out:
+ * both carry analysis some of the time, and excluding them would drift from
+ * describing a site toward judging it.
+ */
+const NOT_NEWS_HOSTS = new Set(['britannica.com', 'disneyplus.com']);
+
+/**
+ * Whether an aggregated item's source is a site that publishes no news.
+ *
+ * Matches the whole host, never a substring: an outlet's reporting must not
+ * disappear because its address happens to contain a listed one. An unknown
+ * source is kept.
+ */
+export function isNotNews(sourceUrl: string | undefined): boolean {
+  const host = hostnameOf(sourceUrl);
+  return host !== undefined && NOT_NEWS_HOSTS.has(host);
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { extractPublisher, colourForSource } from './publisher';
+import { extractPublisher, colourForSource, isNotNews } from './publisher';
 
 // Google News hands us the real outlet in a structured element, a title suffix,
 // or occasionally something unusable. Everything here comes from live feeds.
@@ -138,5 +138,36 @@ describe('colourForSource', () => {
       const lightness = Number(colourForSource(name).match(/(\d+)%\)$/)![1]);
       expect(lightness, name).toBeLessThanOrEqual(42);
     }
+  });
+});
+
+describe('isNotNews', () => {
+  it('drops a streaming catalogue listing', () => {
+    // 'Watch Salaar: Part 1 - Ceasefire' reached the global panel at row 13
+    // through the ceasefire search, and passed the relevance filter on the word
+    // 'ceasefire'.
+    expect(isNotNews('https://www.disneyplus.com')).toBe(true);
+  });
+
+  it('drops an encyclopedia', () => {
+    // '2026 Iran war | Deal, Explained...' and 'Russia-Ukraine War - Bloody
+    // stalemate', both through theater searches on 2026-09-10.
+    expect(isNotNews('https://www.britannica.com')).toBe(true);
+  });
+
+  it('keeps a news outlet', () => {
+    expect(isNotNews('https://www.reuters.com')).toBe(false);
+  });
+
+  it('matches the whole host, never a substring or a lookalike', () => {
+    // The failure mode is dropping an outlet's reporting because its address
+    // happens to contain a listed one.
+    expect(isNotNews('https://notbritannica.com')).toBe(false);
+    expect(isNotNews('https://britannica.com.example.org')).toBe(false);
+  });
+
+  it('keeps an item whose source is unknown', () => {
+    expect(isNotNews(undefined)).toBe(false);
+    expect(isNotNews('not a url')).toBe(false);
   });
 });

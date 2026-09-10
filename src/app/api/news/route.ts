@@ -1,7 +1,7 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
 import { itemDate } from '@/lib/feedDate';
-import { extractPublisher } from '@/lib/publisher';
+import { extractPublisher, isNotNews } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
 import { isTooOld } from '@/lib/recency';
@@ -97,9 +97,14 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
     if (source === 'Google News') {
       viaAggregator = true;
       const sourceEl = item.getElementsByTagName('source')[0];
+      const sourceUrl = sourceEl?.getAttribute('url') ?? undefined;
+      // A search returns encyclopedia entries and streaming listings as well
+      // as reporting. They bypass the relevance filter along with the rest of
+      // the search, so they are dropped here or not at all.
+      if (isNotNews(sourceUrl)) continue;
       publisher = extractPublisher({
         sourceText: sourceEl?.textContent ?? undefined,
-        sourceUrl: sourceEl?.getAttribute('url') ?? undefined,
+        sourceUrl,
         title,
       });
       const dashIdx = title.lastIndexOf(' - ');
