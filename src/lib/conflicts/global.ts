@@ -287,9 +287,19 @@ export const global: ConflictConfig = {
       { url: 'https://news.usni.org/feed', name: 'USNI', unfiltered: true },
       { url: 'https://www.longwarjournal.org/feed', name: 'Long War Jrnl', unfiltered: true },
       { url: 'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10', name: 'DoD', unfiltered: true },
-      // Conflict-scoped searches
-      { url: 'https://news.google.com/rss/search?q=armed+conflict+OR+military+offensive+OR+airstrike&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
-      { url: 'https://news.google.com/rss/search?q=ceasefire+OR+peace+talks+OR+UN+Security+Council&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
+      // Conflict-scoped searches. Google ranks a search by relevance, not
+      // date, so an unbounded one fills its 15 slots with whatever ranks best
+      // however old, and the 14-day age window then discards it. Measured
+      // 2026-09-10: unbounded, the first kept 2 of 15 (median 21 days) and
+      // the second 8 of 15.
+      //
+      // when:1d rather than 7d: both kept 15, but at 7d five slots went to
+      // reference pages (ISW daily assessments, CFR's conflict tracker).
+      { url: 'https://news.google.com/rss/search?q=armed+conflict+OR+military+offensive+OR+airstrike+when:1d&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
+      // Reworded, not only bounded: 'UN Security Council' drew explainers,
+      // advocacy press releases and op-eds at every bound. This keeps ~12 of
+      // 15 on topic across Ukraine, Gaza, Lebanon, Iran and Nigeria.
+      { url: 'https://news.google.com/rss/search?q=ceasefire+OR+truce+OR+%22peace+talks%22+when:3d&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
     ],
     // Conflict vocabulary rather than geography: at this scope there is no place
     // name that scopes the theater, so the filter has to describe what counts as
