@@ -315,7 +315,14 @@ export const taiwanChina: ConflictConfig = {
       { url: 'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10', name: 'DoD' },
       // Theater-scoped searches — bypass the filter
       { url: 'https://news.google.com/rss/search?q=Taiwan+China+military&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
-      { url: 'https://news.google.com/rss/search?q=Taiwan+Strait+PLA+incursion&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
+      // PLA activity around Taiwan. This replaced 'Taiwan Strait PLA incursion',
+      // which returned only 2022-2025 think-tank pieces: 'incursion' is not how
+      // current reporting phrases it ('Taiwan tracks 18 Chinese military
+      // aircraft'), and with when:7d that wording matched nothing at all. The
+      // bound is what keeps a narrow query from backfilling with archive.
+      // Measured 2026-09-10: 12 of 15 items on topic, from ten outlets, none
+      // duplicating the other two searches here.
+      { url: 'https://news.google.com/rss/search?q=PLA+aircraft+Taiwan+when:7d&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
       { url: 'https://news.google.com/rss/search?q=South+China+Sea+Philippines+China&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
     ],
     // Require a theater geography or actor term. "china" and "japan" alone are
