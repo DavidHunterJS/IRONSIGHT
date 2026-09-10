@@ -8,7 +8,6 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **Taipei Times dates every item to 08:00 on its edition day, which can be hours ahead.** Measured 2026-09-10 at 21:39 UTC: all 56 items carried `2026-09-11T08:00:00+08:00` - 00:00 UTC on the 11th, 2.35 hours in the future. The paper stamps the next day's edition before 08:00 Taipei time. It is not a mislabelled zone like Walla's (#39), so `clockZone` does not apply: the stamp is a day-level edition date. Found in the same future-dated sweep. Options: clamp a future date to the fetch time, or treat an edition stamp as day-precision the way #37 treats PressTV.
 - [ ] **Ynet's feed has been stuck since 8 September.** `https://www.ynetnews.com/Integration/StoryRss2.xml` answers with a current build but its newest item is from 8 September 01:52 +0300, three days before this was measured - and its items link to the Hebrew site (ynet.co.il) although the feed is the English one. Too recent for the link checker's 30-day threshold. It was invisible while the row cap cut it; after #38 its three newest rows show at the bottom of iran-israel, 71 hours old. Re-check before replacing the URL.
 
 ### Relevance filters
@@ -78,3 +77,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Date PressTV's items from their URLs instead of the feed's build time, which pinned them to the top of iran-israel~~ ✅ done 2026-09-10 (#37)
 - [x] ~~Guarantee every source its three newest rows instead of handing the 100-row cap to the fastest publishers~~ ✅ done 2026-09-10 (#38)
 - [x] ~~Read Walla's and JPost's timestamps as Israel time, which they label GMT~~ ✅ done 2026-09-10 (#39)
+- [x] ~~Read Taipei Times' 08:00 edition stamp as the midnight its pages give~~ ✅ done 2026-09-10 (#40)

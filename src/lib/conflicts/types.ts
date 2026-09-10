@@ -66,6 +66,11 @@ export interface NewsFeedSource {
   // JPost do, which put their items three hours in the future. Names the IANA
   // zone their digits are really in; see inClockZone in src/lib/feedDate.ts.
   clockZone?: string;
+  // Some outlets date an edition rather than a moment. Taipei Times stamps
+  // every item 08:00 on its edition day while its pages say midnight, which put
+  // its items hours in the future. 'day' reads the stamp as naming that day;
+  // see startOfStampedDay in src/lib/feedDate.ts.
+  datePrecision?: 'day';
 }
 
 export interface CountryQuery {

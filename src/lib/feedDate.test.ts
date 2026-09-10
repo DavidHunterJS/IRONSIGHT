@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DOMParser } from '@xmldom/xmldom';
 
-import { itemDate, undatedItemDate, inClockZone } from './feedDate';
+import { itemDate, undatedItemDate, inClockZone, startOfStampedDay } from './feedDate';
 
 // Items are taken from live feeds on 2026-09-10.
 
@@ -146,5 +146,29 @@ describe('inClockZone', () => {
   it('leaves text it cannot read alone', () => {
     expect(inClockZone('', 'Asia/Jerusalem')).toBe('');
     expect(inClockZone('not a date', 'Asia/Jerusalem')).toBe('not a date');
+  });
+});
+
+describe('startOfStampedDay', () => {
+  // Taipei Times stamps every item 08:00 on its edition day. Its article pages
+  // say the same pieces were published at midnight Taipei - "datePublished":
+  // "2026-09-11T00:00:00+08:00" on the front page, Taiwan, editorials and world
+  // sections alike, all uploaded at 23:40 the night before. Read literally, the
+  // feed's stamp sat 2.35 hours in the future at 21:39 UTC on the 10th.
+  it("takes Taipei Times' edition stamp back to midnight in Taipei", () => {
+    expect(startOfStampedDay('2026-09-11T08:00:00+08:00')).toBe('2026-09-10T16:00:00.000Z');
+  });
+
+  it("uses the stamp's own offset, not UTC's calendar", () => {
+    // Midnight UTC would put the edition on the wrong side of the date line.
+    expect(startOfStampedDay('2026-09-11T01:30:00-05:00')).toBe('2026-09-11T05:00:00.000Z');
+    expect(startOfStampedDay('Thu, 10 Sep 2026 23:45:00 GMT')).toBe('2026-09-10T00:00:00.000Z');
+  });
+
+  it('leaves a stamp alone when it cannot tell which day it names', () => {
+    // No offset means no calendar to take the day from.
+    expect(startOfStampedDay('2026-09-11T08:00:00')).toBe('2026-09-11T08:00:00');
+    expect(startOfStampedDay('not a date')).toBe('not a date');
+    expect(startOfStampedDay('')).toBe('');
   });
 });
