@@ -8,13 +8,11 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 
 ### Next up
 
-- [ ] **Two more Google News searches now contribute almost nothing.** Google returns a search's results by relevance, not date, so a query without a `when:` bound fills its 15 slots with whatever ranks best, however old. The age window (#30) then discards the old ones. Measured 2026-09-10 across all 16 unbounded searches, first 15 items each:
-  - `armed conflict OR military offensive OR airstrike` (global): 2 of 15 under 14 days, median 21 days, oldest 120.
-  - `North Korea missile OR ICBM test`: 2 of 15, median 21 days, oldest 76.
-  - `ceasefire OR peace talks OR UN Security Council` (global): 8 of 15, oldest 101.
-  - The other 13 keep 12-15 of 15. `DMZ OR inter-Korean...` (oldest 25), `Iran Israel war military` (20) and `South China Sea Philippines China` (52) each lose one to three.
+- [ ] **Unfiltered Google News searches let non-news through.** Searches are marked `unfiltered`, so nothing checks what they return beyond the sports/entertainment `NOISE` pattern in the news route. After #33 the global panel carried a Disney+ listing, 'Watch Salaar: Part 1 - Ceasefire', at row 13, alongside a 19FortyFive piece on a Patton quote, Brookings on military AI, and an FT story about an EU-Trump trade 'truce' - about 7 of the 30 rows its two searches contributed. Worth measuring what these searches let through across all theaters before deciding between a wider `NOISE` pattern, relevance-filtering the searches, or tighter wording.
 
-  A `when:7d` bound is the likely fix, but it has to be measured per query: `Taiwan Strait PLA incursion when:7d` returned nothing at all, and was reworded rather than bounded (#32).
+### Google News searches
+
+- [ ] **Three searches were left unbounded on purpose (#33).** `DMZ OR inter-Korean...` lost 3 of 15 items to the age window, `Iran Israel war military` 2-3, `South China Sea Philippines China` 1. Bounding was measured and not applied: on a busy search `when:7d` makes results *older*, because Google stops favouring fresh items and ranks the whole week by relevance (`"Strait of Hormuz" OR "Red Sea" military` went from a 0.6-day median to 4.1, `Russia Ukraine war military` 0.4 to 2.6). A bound belongs only where a search is backfilling with archive. Re-measure if any of these three starts losing more.
 
 ### Clustering
 
@@ -27,6 +25,7 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [ ] **CENTCOM is the last feed the staleness check flags.** `npm run check:links` reports it every sweep and exits 1 until it is dealt with. (CNN was removed in #29; the Taiwan Strait query was reworded in #32.) It no longer reaches a panel: the 14-day age window (#30) drops all fifteen of its rows. Measured live, those rows were on **red-sea** (rows 48-62 of 62, 217-329 days old), not iran-israel as first recorded - iran-israel has 100 newer items, so CENTCOM never survived its slice. What is left is only whether to keep a feed that contributes nothing while quiet and comes back on its own if it resumes, or drop it so the checker goes green.
 - [ ] **Nikkei Asia carries no dates at all.** Its RSS 1.0 items have a title and a link and nothing else - no date at item or channel level, so there is no field to read (#31 checked every configured feed; Nikkei and Taipei Times were the only two arriving undated, and only Taipei Times had a date to find). It contributes no rows today only because none of its 15 headlines on 2026-09-10 passed the taiwan-china or north-korea relevance filters. When one does, it will be kept by the age window and sort below every dated row. Options: date items by when we first saw them (needs state the route does not have), or leave it and accept the sort position.
 - [ ] **Walla and JPost timestamps run up to ~3 hours in the future.** Measured 2026-09-10: 11 iran-israel rows dated 0.1-2.6 hours ahead, all Walla or JPost, all labelled `GMT`. The size fits Israel local time (UTC+3 in summer) written with the wrong zone. The recency sort uses distance from now in either direction, so a mislabelled item ranks as if it were hours older than it is, and `timeAgo` prints the absolute value. Not an age problem, so the age window leaves future dates alone.
+- [ ] **Korea Times' feed went empty on 2026-09-10.** The configured `https://www.koreatimes.co.kr/www/rss/nation.xml` now 301s to `https://feed.koreatimes.co.kr/k/southkorea.xml`, which answers 200 with a well-formed channel and no items, so `check:links -- --conflict=north-korea` exits 1 ("feed parsed but yielded no item links"). The same URL returned 15 dated items earlier that day, so this may be a migration in progress rather than a dead feed. One reading - re-check before replacing the URL.
 - [ ] **38 North may be failing from Vercel only.** The live north-korea panel reported `20/21` sources and carried no 38 North rows; a local build on the same day reported `21/21` and served seven. One reading - confirm with `check:links` and a second live sample before concluding it blocks datacenter addresses.
 - [ ] **Re-check the theaters that lean on one source.** taiwan-china now runs without a second Chinese state outlet after China Daily was dropped; Global Times is the only one left. Worth a look at whether other theaters have a similarly thin slot.
 
@@ -63,3 +62,4 @@ Working task list for **IRONSIGHT**. Read this at the start of a work session an
 - [x] ~~Drop news items older than 14 days, so thin theaters stop backfilling with archive~~ ✅ done 2026-09-10 (#30)
 - [x] ~~Read Taipei Times' `<dc:date>`, through one date reader shared by the route and the link checker~~ ✅ done 2026-09-10 (#31)
 - [x] ~~Reword the Taiwan Strait query, which matched only 2022-2025 results, to `PLA aircraft Taiwan when:7d`~~ ✅ done 2026-09-10 (#32)
+- [x] ~~Bound the three Google News searches the age window was emptying, and reword the ceasefire search~~ ✅ done 2026-09-10 (#33)

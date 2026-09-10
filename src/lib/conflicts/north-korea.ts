@@ -306,7 +306,12 @@ export const northKorea: ConflictConfig = {
       { url: 'https://news.usni.org/feed', name: 'USNI' },
       { url: 'https://breakingdefense.com/feed/', name: 'Breaking Def' },
       // Theater-scoped searches — bypass the filter
-      { url: 'https://news.google.com/rss/search?q=North+Korea+missile+OR+ICBM+test&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
+      // Bounded because it is event-driven: between tests Google fills it with
+      // coverage of the last one, which on 2026-09-10 was three weeks old, so
+      // the 14-day age window kept 1 of 15. At 7d it carries current North
+      // Korean military and nuclear news until the next test; at 1d a third
+      // of it duplicated the Kim Jong Un search below.
+      { url: 'https://news.google.com/rss/search?q=North+Korea+missile+OR+ICBM+test+when:7d&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
       { url: 'https://news.google.com/rss/search?q=North+Korea+Kim+Jong+Un+military&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
       { url: 'https://news.google.com/rss/search?q=DMZ+OR+inter-Korean+South+Korea+North+Korea&hl=en-US&gl=US&ceid=US:en', name: 'Google News', unfiltered: true },
     ],
