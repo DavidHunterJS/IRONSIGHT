@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DOMParser } from '@xmldom/xmldom';
 
-import { itemDate, undatedItemDate } from './feedDate';
+import { itemDate, undatedItemDate, inClockZone } from './feedDate';
 
 // Items are taken from live feeds on 2026-09-10.
 
@@ -112,5 +112,39 @@ describe('undatedItemDate', () => {
   it('returns nothing when there is neither', () => {
     expect(undatedItemDate('https://example.com/story', '')).toBe('');
     expect(undatedItemDate('', '')).toBe('');
+  });
+});
+
+describe('inClockZone', () => {
+  // Walla and JPost write Israel's wall-clock time and label it GMT. Walla's
+  // item 'Thu, 10 Sep 2026 23:45:00 GMT' is, by the article's own page,
+  // "datePublished": "2026-09-10T23:45:00+03:00" - 20:45 UTC. Read as GMT it
+  // sat three hours in the future and outranked every honestly dated outlet.
+  it("reads Walla's 'GMT' as Israel summer time", () => {
+    expect(inClockZone('Thu, 10 Sep 2026 23:45:00 GMT', 'Asia/Jerusalem')).toBe('2026-09-10T20:45:00.000Z');
+  });
+
+  it("reads JPost's across midnight", () => {
+    // Labelled a quarter past midnight on the 11th; really 21:07 UTC on the 10th.
+    expect(inClockZone('Fri, 11 Sep 2026 00:07:57 GMT', 'Asia/Jerusalem')).toBe('2026-09-10T21:07:57.000Z');
+  });
+
+  it('follows the zone into winter time rather than assuming three hours', () => {
+    // Israel returns to UTC+2 at the end of October. A fixed correction would
+    // push every winter item an hour early.
+    expect(inClockZone('Tue, 15 Dec 2026 12:00:00 GMT', 'Asia/Jerusalem')).toBe('2026-12-15T10:00:00.000Z');
+  });
+
+  it('gets the offset right on the evening before the clocks change', () => {
+    // Israel leaves summer time at 02:00 local on 25 October 2026 (23:00 UTC
+    // on the 24th). 23:30 local on the 24th is still UTC+3, but the same digits
+    // read as UTC fall after the change, where the offset is +2 - a single
+    // lookup would land an hour late.
+    expect(inClockZone('Sat, 24 Oct 2026 23:30:00 GMT', 'Asia/Jerusalem')).toBe('2026-10-24T20:30:00.000Z');
+  });
+
+  it('leaves text it cannot read alone', () => {
+    expect(inClockZone('', 'Asia/Jerusalem')).toBe('');
+    expect(inClockZone('not a date', 'Asia/Jerusalem')).toBe('not a date');
   });
 });

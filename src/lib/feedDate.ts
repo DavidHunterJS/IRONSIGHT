@@ -72,3 +72,40 @@ export function undatedItemDate(link: string, channelDate: string): string {
   }
   return channelDate;
 }
+
+/** The zone's UTC offset in ms at a given instant, from the platform's tz data. */
+function offsetAt(ms: number, zone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    hourCycle: 'h23',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+  }).formatToParts(new Date(ms));
+  const get = (t: string) => +(parts.find(p => p.type === t)?.value ?? 0);
+  const wall = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  return wall - Math.floor(ms / 1000) * 1000;
+}
+
+/**
+ * Read a timestamp whose digits are wall-clock time in `zone`, whatever zone
+ * it claims to be in.
+ *
+ * Walla and JPost write Israel's local time and label it GMT (JPost's article
+ * pages repeat the same wrong offset). Read as written, their items sat up to
+ * three hours in the future, and because the news route sorts by distance from
+ * now in either direction, anything of theirs more than about three hours old
+ * read three hours younger and won the recency fill against every honestly
+ * dated outlet.
+ *
+ * The offset comes from the zone's own rules rather than a fixed three hours,
+ * so it stays right when Israel returns to UTC+2 in winter. Text that does not
+ * parse is returned as it came.
+ */
+export function inClockZone(dateText: string, zone: string): string {
+  const parsed = Date.parse(dateText);
+  if (Number.isNaN(parsed)) return dateText;
+  // The digits as if they were UTC; the zone's offset is then taken away. A
+  // second pass settles items that fall near a daylight-saving change.
+  const first = parsed - offsetAt(parsed, zone);
+  return new Date(parsed - offsetAt(first, zone)).toISOString();
+}

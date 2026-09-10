@@ -116,6 +116,14 @@ describe.each(keys)('theater: %s', (key) => {
     }
   });
 
+  it('names a real IANA zone for every feed that writes local time', () => {
+    // A typo would throw inside Intl on every fetch of that feed.
+    for (const f of server.newsFeeds) {
+      if (!f.clockZone) continue;
+      expect(() => new Intl.DateTimeFormat('en-US', { timeZone: f.clockZone }).format(), `${f.name} ${f.clockZone}`).not.toThrow();
+    }
+  });
+
   it('has Telegram handles the scraper will accept', () => {
     const names = server.telegramChannels.map((c) => c.name);
     expect(new Set(names).size, 'duplicate channel').toBe(names.length);

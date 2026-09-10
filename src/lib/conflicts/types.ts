@@ -62,6 +62,10 @@ export interface NewsFeedSource {
   // interstitial. Matches the hostname exactly, so links this feed makes to
   // anywhere else are left alone.
   rewriteLinkHost?: { from: string; to: string };
+  // Some outlets write their local wall-clock time and label it GMT. Walla and
+  // JPost do, which put their items three hours in the future. Names the IANA
+  // zone their digits are really in; see inClockZone in src/lib/feedDate.ts.
+  clockZone?: string;
 }
 
 export interface CountryQuery {
