@@ -284,7 +284,9 @@ export const taiwanChina: ConflictConfig = {
     newsFeeds: [
       // Taiwan outlets — inherently on-topic, bypass the relevance filter
       { url: 'https://feeds.feedburner.com/rsscna/engnews/', name: 'Focus Taiwan', unfiltered: true },
-      { url: 'https://www.taipeitimes.com/xml/index.rss', name: 'Taipei Times', unfiltered: true },
+      // Stamps every item 08:00 on the edition day; its article pages say the
+      // same pieces were published at midnight Taipei (measured 2026-09-10).
+      { url: 'https://www.taipeitimes.com/xml/index.rss', name: 'Taipei Times', unfiltered: true, datePrecision: 'day' },
       // Regional outlets — general coverage, keyword-filtered
       { url: 'https://www.scmp.com/rss/4/feed', name: 'SCMP' },
       { url: 'https://asia.nikkei.com/rss/feed/nar', name: 'Nikkei Asia' },

@@ -109,3 +109,34 @@ export function inClockZone(dateText: string, zone: string): string {
   const first = parsed - offsetAt(parsed, zone);
   return new Date(parsed - offsetAt(first, zone)).toISOString();
 }
+
+/** The UTC offset a timestamp states, in minutes, or null if it states none. */
+function statedOffsetMinutes(dateText: string): number | null {
+  const t = dateText.trim();
+  if (/(?:Z|GMT|UTC)$/i.test(t)) return 0;
+  const m = /([+-])(\d{2}):?(\d{2})$/.exec(t);
+  if (!m) return null;
+  return (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]);
+}
+
+/**
+ * The start of the day a timestamp names, in the timestamp's own offset.
+ *
+ * For feeds whose dates name an edition rather than a moment. Taipei Times
+ * stamps every item 08:00 on its edition day; its article pages give the same
+ * pieces "datePublished": "2026-09-11T00:00:00+08:00" - midnight in Taipei,
+ * after a batch upload at 23:40 the night before. Read literally the stamp was
+ * eight hours late, and before 08:00 Taipei it sat in the future.
+ *
+ * The day is taken in the stamp's own offset: midnight UTC would put a Taipei
+ * edition on the wrong side of the date line. A stamp with no stated offset
+ * names no particular calendar and is returned unchanged.
+ */
+export function startOfStampedDay(dateText: string): string {
+  const ms = Date.parse(dateText);
+  const offset = statedOffsetMinutes(dateText);
+  if (Number.isNaN(ms) || offset === null) return dateText;
+  const DAY = 86_400_000;
+  const wall = ms + offset * 60_000;
+  return new Date(Math.floor(wall / DAY) * DAY - offset * 60_000).toISOString();
+}

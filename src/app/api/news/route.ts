@@ -1,6 +1,6 @@
 import { parseXML, getTextContent } from '@/lib/fetcher';
 import { rewriteLinkHost } from '@/lib/links';
-import { itemDate, undatedItemDate, inClockZone } from '@/lib/feedDate';
+import { itemDate, undatedItemDate, inClockZone, startOfStampedDay } from '@/lib/feedDate';
 import { extractPublisher, isNotNews } from '@/lib/publisher';
 import { provenanceOf } from '@/lib/provenance';
 import { clusterStories } from '@/lib/cluster';
@@ -82,11 +82,12 @@ async function fetchRSS(feed: NewsFeedSource): Promise<NewsItem[]> {
     // An item's own date, then a date in its URL, then the feed's build time.
     // Stamping every undated item with the build time made all of them look
     // minutes old and pinned them to the top of the panel.
-    // Feeds that write local time under a GMT label are corrected first.
-    const ownDate = sanitizeText(itemDate(item), { maxLength: 64 });
-    const pubDate =
-      (ownDate && feed.clockZone ? inClockZone(ownDate, feed.clockZone) : ownDate) ||
-      undatedItemDate(link, channelDate);
+    // Feeds that write local time under a GMT label are corrected first, and
+    // feeds that date an edition rather than a moment are read as that day.
+    let ownDate = sanitizeText(itemDate(item), { maxLength: 64 });
+    if (ownDate && feed.clockZone) ownDate = inClockZone(ownDate, feed.clockZone);
+    if (ownDate && feed.datePrecision === 'day') ownDate = startOfStampedDay(ownDate);
+    const pubDate = ownDate || undatedItemDate(link, channelDate);
 
     if (!title) continue;
 
